@@ -1,0 +1,105 @@
+<mujoco model="teaching_mobile_manipulator">
+  <!-- SI units; x forward, y left, z up. All joint angles use radians. -->
+  <compiler angle="radian"/>
+
+  <option integrator="implicitfast"/>
+
+  <default>
+    <joint armature="0.01" damping="1"/>
+    <geom condim="4" friction="0.8 0.01 0.001" rgba="0.35 0.55 0.75 1"/>
+    <default class="wheel">
+      <joint damping="0.05" axis="0 1 0" limited="false"/>
+      <geom size="0.1 0.025 0" type="cylinder" rgba="0.12 0.12 0.12 1"/>
+    </default>
+    <default class="arm">
+      <joint damping="2" limited="true"/>
+      <geom size="0.025 0 0" type="capsule" rgba="0.9 0.6 0.2 1"/>
+    </default>
+    <default class="finger">
+      <joint type="slide" range="0 0.035" armature="0.001" damping="5"/>
+      <geom size="0.045 0.008 0.018" type="box" friction="1.2" rgba="0.2 0.2 0.25 1"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <geom name="floor" size="4 4 0.1" type="plane" rgba="0.85 0.85 0.85 1"/>
+    <light pos="0 -2 4"/>
+    <body name="base" pos="0 0 0.18">
+      <joint name="base_free" type="free" armature="0" damping="0"/>
+      <geom name="chassis" size="0.28 0.18 0.06" type="box" mass="15"/>
+      <body name="wheel_fl" childclass="wheel" pos="0.2 0.215 -0.075">
+        <joint name="wheel_fl_joint"/>
+        <geom name="wheel_fl_geom" quat="0.707107 -0.707107 0 0" mass="0.5"/>
+      </body>
+      <body name="wheel_fr" childclass="wheel" pos="0.2 -0.215 -0.075">
+        <joint name="wheel_fr_joint"/>
+        <geom name="wheel_fr_geom" quat="0.707107 -0.707107 0 0" mass="0.5"/>
+      </body>
+      <body name="wheel_rl" childclass="wheel" pos="-0.2 0.215 -0.075">
+        <joint name="wheel_rl_joint"/>
+        <geom name="wheel_rl_geom" quat="0.707107 -0.707107 0 0" mass="0.5"/>
+      </body>
+      <body name="wheel_rr" childclass="wheel" pos="-0.2 -0.215 -0.075">
+        <joint name="wheel_rr_joint"/>
+        <geom name="wheel_rr_geom" quat="0.707107 -0.707107 0 0" mass="0.5"/>
+      </body>
+      <body name="pedestal" pos="0 0 0.06">
+        <geom size="0.065 0.08" pos="0 0 0.08" type="cylinder" mass="1"/>
+        <body name="link1" childclass="arm" pos="0 0 0.16">
+          <joint name="arm_j1" range="-3.14 3.14"/>
+          <geom size="0.025 0.05" pos="0 0 0.05" quat="0 1 0 0" mass="0.6"/>
+          <body name="link2" pos="0 0 0.1">
+            <joint name="arm_j2" range="-1.5 1.5" axis="0 1 0"/>
+            <geom size="0.025 0.12" pos="0 0 0.12" quat="0 1 0 0" mass="0.8"/>
+            <body name="link3" pos="0 0 0.24">
+              <joint name="arm_j3" range="-2 2" axis="0 1 0"/>
+              <geom size="0.025 0.11" pos="0 0 0.11" quat="0 1 0 0" mass="0.6"/>
+              <body name="link4" pos="0 0 0.22">
+                <joint name="arm_j4" range="-3.14 3.14"/>
+                <geom size="0.022 0.04" pos="0 0 0.04" quat="0 1 0 0" mass="0.25"/>
+                <body name="link5" pos="0 0 0.08">
+                  <joint name="arm_j5" range="-1.8 1.8" axis="0 1 0"/>
+                  <geom size="0.02 0.035" pos="0 0 0.035" quat="0 1 0 0" mass="0.2"/>
+                  <body name="link6" pos="0 0 0.07">
+                    <joint name="arm_j6" range="-3.14 3.14"/>
+                    <geom size="0.018 0.03" pos="0 0 0.03" quat="0 1 0 0" mass="0.15"/>
+                    <body name="palm" pos="0 0 0.06" quat="0.707107 0 -0.707107 0">
+                      <geom size="0.025 0.055 0.022" type="box" rgba="0.3 0.3 0.35 1" mass="0.25"/>
+                      <site name="grasp_site" size="0.008" pos="0.07 0 0" rgba="1 0 0 1"/>
+                      <body name="finger_left" childclass="finger" pos="0.025 0.018 0">
+                        <joint name="finger_left_joint" axis="0 1 0"/>
+                        <geom pos="0.045 0 0" mass="0.08"/>
+                      </body>
+                      <body name="finger_right" childclass="finger" pos="0.025 -0.018 0">
+                        <joint name="finger_right_joint" axis="0 -1 0"/>
+                        <geom pos="0.045 0 0" mass="0.08"/>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <equality>
+    <joint name="finger_sync" joint1="finger_right_joint" joint2="finger_left_joint"/>
+  </equality>
+
+  <actuator>
+    <general name="drive_fl" joint="wheel_fl_joint" ctrlrange="-10 10" forcerange="-8 8" biastype="affine" gainprm="3" biasprm="0 0 -3"/>
+    <general name="drive_fr" joint="wheel_fr_joint" ctrlrange="-10 10" forcerange="-8 8" biastype="affine" gainprm="3" biasprm="0 0 -3"/>
+    <general name="drive_rl" joint="wheel_rl_joint" ctrlrange="-10 10" forcerange="-8 8" biastype="affine" gainprm="3" biasprm="0 0 -3"/>
+    <general name="drive_rr" joint="wheel_rr_joint" ctrlrange="-10 10" forcerange="-8 8" biastype="affine" gainprm="3" biasprm="0 0 -3"/>
+    <general name="arm_a1" joint="arm_j1" ctrlrange="-3.14 3.14" forcerange="-40 40" biastype="affine" gainprm="150" biasprm="0 -150 -15"/>
+    <general name="arm_a2" joint="arm_j2" ctrlrange="-1.5 1.5" forcerange="-40 40" biastype="affine" gainprm="150" biasprm="0 -150 -15"/>
+    <general name="arm_a3" joint="arm_j3" ctrlrange="-2 2" forcerange="-30 30" biastype="affine" gainprm="120" biasprm="0 -120 -12"/>
+    <general name="arm_a4" joint="arm_j4" ctrlrange="-3.14 3.14" forcerange="-15 15" biastype="affine" gainprm="60" biasprm="0 -60 -6"/>
+    <general name="arm_a5" joint="arm_j5" ctrlrange="-1.8 1.8" forcerange="-15 15" biastype="affine" gainprm="60" biasprm="0 -60 -6"/>
+    <general name="arm_a6" joint="arm_j6" ctrlrange="-3.14 3.14" forcerange="-10 10" biastype="affine" gainprm="40" biasprm="0 -40 -4"/>
+    <general name="gripper" joint="finger_left_joint" ctrlrange="0 0.035" forcerange="-20 20" biastype="affine" gainprm="400" biasprm="0 -400 -10"/>
+  </actuator>
+</mujoco>

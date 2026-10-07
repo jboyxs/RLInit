@@ -1,0 +1,111 @@
+<mujoco model="teaching_mobile_manipulator">
+  <!-- SI units; x forward, y left, z up. All joint angles use radians. -->
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+  <default>
+    <joint damping="1" armature="0.01"/>
+    <geom friction="0.8 0.01 0.001" condim="4" rgba="0.35 0.55 0.75 1"/>
+    <default class="wheel">
+      <joint type="hinge" axis="0 1 0" limited="false" damping="0.05"/>
+      <!-- A cylinder's symmetry axis is local z: rotate the GEOM onto y. -->
+      <geom type="cylinder" size="0.10 0.025" zaxis="0 1 0"
+            mass="0.5" rgba="0.12 0.12 0.12 1"/>
+    </default>
+    <default class="arm">
+      <joint type="hinge" limited="true" damping="2"/>
+      <geom type="capsule" size="0.025" rgba="0.9 0.6 0.2 1"/>
+    </default>
+    <default class="finger">
+      <joint type="slide" range="0 0.035" damping="5" armature="0.001"/>
+      <geom type="box" size="0.045 0.008 0.018" pos="0.045 0 0"
+            mass="0.08" friction="1.2 0.01 0.001" rgba="0.2 0.2 0.25 1"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <light pos="0 -2 4" dir="0 0 -1"/>
+    <geom name="floor" type="plane" size="4 4 0.1" rgba="0.85 0.85 0.85 1"/>
+
+    <!-- The free joint lets wheel/ground contact determine base motion. -->
+    <body name="base" pos="0 0 0.18">
+      <freejoint name="base_free"/>
+      <geom name="chassis" type="box" size="0.28 0.18 0.06" mass="15"/>
+      <body name="wheel_fl" pos="0.20 0.215 -0.075" childclass="wheel">
+        <joint name="wheel_fl_joint"/><geom name="wheel_fl_geom"/>
+      </body>
+      <body name="wheel_fr" pos="0.20 -0.215 -0.075" childclass="wheel">
+        <joint name="wheel_fr_joint"/><geom name="wheel_fr_geom"/>
+      </body>
+      <body name="wheel_rl" pos="-0.20 0.215 -0.075" childclass="wheel">
+        <joint name="wheel_rl_joint"/><geom name="wheel_rl_geom"/>
+      </body>
+      <body name="wheel_rr" pos="-0.20 -0.215 -0.075" childclass="wheel">
+        <joint name="wheel_rr_joint"/><geom name="wheel_rr_geom"/>
+      </body>
+
+      <body name="pedestal" pos="0 0 0.06">
+        <geom type="cylinder" size="0.065 0.08" pos="0 0 0.08" mass="1"/>
+        <body name="link1" pos="0 0 0.16" childclass="arm">
+          <joint name="arm_j1" axis="0 0 1" range="-3.14 3.14"/>
+          <geom fromto="0 0 0 0 0 0.10" mass="0.6"/>
+          <body name="link2" pos="0 0 0.10">
+            <joint name="arm_j2" axis="0 1 0" range="-1.5 1.5"/>
+            <geom fromto="0 0 0 0 0 0.24" mass="0.8"/>
+            <body name="link3" pos="0 0 0.24">
+              <joint name="arm_j3" axis="0 1 0" range="-2 2"/>
+              <geom fromto="0 0 0 0 0 0.22" mass="0.6"/>
+              <body name="link4" pos="0 0 0.22">
+                <joint name="arm_j4" axis="0 0 1" range="-3.14 3.14"/>
+                <geom fromto="0 0 0 0 0 0.08" size="0.022" mass="0.25"/>
+                <body name="link5" pos="0 0 0.08">
+                  <joint name="arm_j5" axis="0 1 0" range="-1.8 1.8"/>
+                  <geom fromto="0 0 0 0 0 0.07" size="0.020" mass="0.2"/>
+                  <body name="link6" pos="0 0 0.07">
+                    <joint name="arm_j6" axis="0 0 1" range="-3.14 3.14"/>
+                    <geom fromto="0 0 0 0 0 0.06" size="0.018" mass="0.15"/>
+                    <!-- Rotate the fixed palm so its local x points along link6 z. -->
+                    <body name="palm" pos="0 0 0.06" euler="0 -1.57079632679 0">
+                      <geom type="box" size="0.025 0.055 0.022"
+                            mass="0.25" rgba="0.3 0.3 0.35 1"/>
+                      <site name="grasp_site" pos="0.07 0 0" size="0.008" rgba="1 0 0 1"/>
+                      <!-- q=0 closes; positive q opens both fingers. -->
+                      <body name="finger_left" pos="0.025 0.018 0" childclass="finger">
+                        <joint name="finger_left_joint" axis="0 1 0"/><geom/>
+                      </body>
+                      <body name="finger_right" pos="0.025 -0.018 0" childclass="finger">
+                        <joint name="finger_right_joint" axis="0 -1 0"/><geom/>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <equality>
+    <!-- Equal scalar displacements + opposite axes = symmetric opening. -->
+    <joint name="finger_sync" joint1="finger_right_joint" joint2="finger_left_joint"
+           polycoef="0 1 0 0 0"/>
+  </equality>
+
+  <actuator>
+    <!-- Unit gear: wheel ctrl is rad/s, arm ctrl rad, finger ctrl metres. -->
+    <velocity name="drive_fl" joint="wheel_fl_joint" kv="3" ctrlrange="-10 10" forcerange="-8 8"/>
+    <velocity name="drive_fr" joint="wheel_fr_joint" kv="3" ctrlrange="-10 10" forcerange="-8 8"/>
+    <velocity name="drive_rl" joint="wheel_rl_joint" kv="3" ctrlrange="-10 10" forcerange="-8 8"/>
+    <velocity name="drive_rr" joint="wheel_rr_joint" kv="3" ctrlrange="-10 10" forcerange="-8 8"/>
+    <position name="arm_a1" joint="arm_j1" kp="150" kv="15" ctrlrange="-3.14 3.14" forcerange="-40 40"/>
+    <position name="arm_a2" joint="arm_j2" kp="150" kv="15" ctrlrange="-1.5 1.5" forcerange="-40 40"/>
+    <position name="arm_a3" joint="arm_j3" kp="120" kv="12" ctrlrange="-2 2" forcerange="-30 30"/>
+    <position name="arm_a4" joint="arm_j4" kp="60" kv="6" ctrlrange="-3.14 3.14" forcerange="-15 15"/>
+    <position name="arm_a5" joint="arm_j5" kp="60" kv="6" ctrlrange="-1.8 1.8" forcerange="-15 15"/>
+    <position name="arm_a6" joint="arm_j6" kp="40" kv="4" ctrlrange="-3.14 3.14" forcerange="-10 10"/>
+    <position name="gripper" joint="finger_left_joint" kp="400" kv="10"
+              ctrlrange="0 0.035" forcerange="-20 20"/>
+  </actuator>
+</mujoco>
