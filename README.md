@@ -1,10 +1,12 @@
-### 路线（边做边该）
+### 路线（边做边改）
 MuJoCo
 │
-├── MJCF / MjSpec
+├── MJCF / MjSpec      <geom mass="0"/>
+
 │      ↓
 │   搭建机器人和场景
-│
+│      <geom mass="0"/>
+
 ├── Physics Simulation
 │      ↓
 │ qpos / qvel / sensor / actuator
@@ -37,7 +39,7 @@ MuJoCo
  object position
  
 1. 建模对象的选择和实现的控制任务
-现在的想法有机器人-正确行走、果蝇-完成各种飞行任务、鸟-完成各种飞行任务、自由度串联机械臂 + 两指夹爪+底座四轮完成开门关门这种contact-rich的任务
+现在的想法有机器人-正确行走、果蝇-完成各种飞行任务、鸟-完成各种飞行任务、3自由度串联机械臂 + 两指夹爪+底座四轮完成开门关门这种contact-rich的任务
 现在偏向的是最后一个
 2. 从零搭建移动机械臂
 
@@ -50,7 +52,6 @@ MuJoCo
 
 ```bash
 uv sync
-uv run python scripts/view_robot.py --demo
-# 不打开窗口，检查 XML 和仿真：
-uv run python scripts/view_robot.py --headless --seconds 10 --demo
+# 只显示模型初始姿态：
+uv run python scripts/view_robot.py
 ```

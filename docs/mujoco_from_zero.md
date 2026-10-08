@@ -2,7 +2,7 @@
 
 README 提出了移动机械臂开关门的方向，但没有指定自由度数、尺寸、质量和轮式结构。本示例选择 **6 个转动关节、平行两指夹爪、四轮滑移转向**，先学习机器人本体，再添加门。所有数值都是教学参数，不代表真实设备；六关节也不意味着在所有姿态下都能独立控制末端六维运动。
 
-完整文件在 `models/mobile_manipulator.xml`，加载和控制脚本在 `scripts/view_robot.py`。
+完整文件在 `models/mobile_manipulator.xml`，静态查看脚本在 `scripts/view_robot.py`。
 
 ## 1. 先运行，再逐块改 XML
 
@@ -10,15 +10,13 @@ README 提出了移动机械臂开关门的方向，但没有指定自由度数�
 
 ```bash
 uv sync
-# 仅加载和模拟，不需要窗口：
-uv run python scripts/view_robot.py --headless --seconds 10
-# 打开交互窗口，机械臂保持初始姿态：
+# 打开交互窗口，仅显示 XML 定义的初始姿态：
 uv run python scripts/view_robot.py
-# 肩、肘小幅摆动，同时开合夹爪：
-uv run python scripts/view_robot.py --demo
+# 查看其他 XML：
+uv run python scripts/view_robot.py --model 你的文件.xml
 ```
 
-关闭窗口退出。修改 XML 后重新运行脚本。窗口需要可用的桌面显示和 OpenGL；排查模型问题时先用 `--headless`。`--seconds` 只控制无窗口检查时长。
+关闭窗口退出。修改 XML 后重新运行脚本。窗口需要可用的桌面显示和 OpenGL。脚本只调用 mj_forward 计算初始几何位置，不推进物理仿真，也不发送动作。
 
 ## 2. 认识 XML 中的六个基本概念
 
@@ -88,7 +86,7 @@ world
 
 底座全尺寸为 0.56 × 0.36 × 0.12 m。这里只有底座时，它会落到地面上，这是正常行为。加轮子后才由轮子支撑。没有 `freejoint` 时底座固定在世界上，即使轮子旋转也不会行驶。
 
-这个最小文件可以用 `uv run python -m mujoco.viewer --mjcf=你的文件.xml` 单独查看；项目脚本会按名称查找完整机器人的关节，因此不适用于删掉组件后的练习文件。
+这个最小文件可以用 `uv run python scripts/view_robot.py --model 你的文件.xml` 静态查看，镜头可以用鼠标调整。
 
 ## 5. 给底座添加四个轮子
 
@@ -170,7 +168,7 @@ site 本身不会产生接触，实际抓取靠两指 geom 和物体碰撞、摩
 
 位置伺服近似 `力/力矩 = kp × (目标位置 - 实际位置) - kv × 速度`，再经过力限幅。它不是瞬间把关节移到目标位置；有重力和接触负载时会有误差。先用适中的增益和力限幅，看到抖动先排查接触穿透、质量和步长，再调增益。
 
-运行脚本的核心只有四步：
+后续添加动作时，加载模型并控制一个关节的核心只有四步：
 
 ```python
 model = mujoco.MjModel.from_xml_path("models/mobile_manipulator.xml")
@@ -179,7 +177,7 @@ data.ctrl[model.actuator("arm_a2").id] = 0.3
 mujoco.mj_step(model, data)
 ```
 
-实际循环中每步设置 ctrl，然后调用 mj_step，再刷新 viewer。读取某个关节优先用 `data.joint("arm_j2").qpos[0]`，不要猜数组下标。
+加入动作后，在循环中设置 ctrl，然后调用 mj_step，再刷新 viewer。当前查看脚本只显示初始姿态。读取某个关节优先用 `data.joint("arm_j2").qpos[0]`，不要猜数组下标。
 
 ### 自由度和控制维度不是同一个数
 
@@ -208,7 +206,7 @@ mujoco.mj_step(model, data)
 5. 打开和关闭夹爪，确认两个指头对称运动。
 6. 添加一个可移动小方块，再检查抓取接触。
 
-要修改底盘速度，可在脚本 `set_controls` 中将四个 drive 的值由 0 改为例如 1.0。当前脚本每步都会设置命令，因此直接拖动 viewer 控制滑条会被脚本覆盖。
+后续验证底盘速度时，可给四个 drive 设置例如 1.0 的 ctrl，并在循环中调用 mj_step。当前脚本不推进物理仿真，拖动控制滑条也不会驱动机器人运动。
 
 也可以把期望前进速度 v、角速度 omega 转成左右轮速的初始估计：
 
@@ -233,7 +231,7 @@ right = (v + omega * b / 2) / r
 
 先用脚本完成“到把手附近 → 对准 → 闭合 → 拉动门”，验证接触和可达性，再封装 Gymnasium。第一版 action 可用 `[v, omega, 六个关节目标, 夹爪开度]`，共 9 维，脚本将底盘两个命令映射到四轮 actuator。动作范围、控制频率、关节目标增量和力限幅都应明确；模型有 11 个 actuator 不要求策略输出也是 11 维。
 
-当前示例只包含机器人和地面，演示小幅关节运动与夹爪开合；尚未实现门、逆运动学、抓取控制器或强化学习环境。
+当前示例只包含机器人和地面，脚本仅渲染初始姿态；尚未实现动作演示、门、逆运动学、抓取控制器或强化学习环境。
 
 ## 官方文档
 

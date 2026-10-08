@@ -1,0 +1,62 @@
+<mujoco model="base">
+  <!-- 独立移动底盘：定义外形、碰撞、质量和三个平面自由度；展示环境见 scene_base.xml。
+       这里直接驱动底盘位姿，没有单独建模车轮或轮式传动。角度使用弧度，网格从 assets 读取。 -->
+  <compiler angle="radian" meshdir="assets"/>
+
+  <!-- implicitfast 决定时间积分方式，适合本模型中的高增益位置伺服。 -->
+  <option integrator="implicitfast"/>
+
+  <!-- 几何体默认质量为 0，避免视觉和碰撞网格重复计入质量。
+       visual 只显示外观（关闭接触），collision 负责接触；group=2/3 仅用于显示分组。 -->
+  <default>
+    <geom mass="0"/>
+    <default class="visual">
+      <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+    </default>
+    <default class="collision">
+      <geom type="mesh" group="3"/>
+    </default>
+  </default>
+
+  <!-- 材质决定颜色；五个网格分别表示保险杠、底板、壳体、顶板和机械臂安装板。 -->
+  <asset>
+    <material name="black" rgba="0.11372549 0.11372549 0.10196078 1"/>
+    <material name="gray" rgba="0.62745098 0.65098039 0.64705882 1"/>
+    <material name="dark_gray" rgba="0.35294118 0.37647059 0.37254902 1"/>
+    <mesh file="base/bumper.stl"/>
+    <mesh file="base/bottom_plate.stl"/>
+    <mesh file="base/body.stl"/>
+    <mesh file="base/top_plate.stl"/>
+    <mesh file="base/arm_plate.stl"/>
+  </asset>
+
+  <worldbody>
+    <!-- 三个关节限定底盘沿世界 X/Y 平移、绕 Z 转向，不能升降、俯仰或侧倾。
+         joint_th 未指定类型和轴，使用默认 hinge 和局部 Z 轴。 -->
+    <body name="base_link">
+      <joint name="joint_x" type="slide" axis="1 0 0"/>
+      <joint name="joint_y" type="slide" axis="0 1 0"/>
+      <joint name="joint_th"/>
+      <geom class="visual" mesh="bumper" material="black"/>
+      <geom class="visual" mesh="bottom_plate" material="dark_gray"/>
+      <!-- 60 kg 集中赋给壳体网格；未显式给出 inertial，底盘质心和惯量由网格推算。 -->
+      <geom class="visual" mesh="body" material="gray" mass="60"/>
+      <geom class="visual" mesh="top_plate" material="dark_gray"/>
+      <geom class="visual" mesh="arm_plate" material="gray"/>
+      <!-- 碰撞使用同组部件的网格；普通 mesh 接触采用凸包，外观凹槽不等同于真实碰撞表面。 -->
+      <geom class="collision" mesh="bumper"/>
+      <geom class="collision" mesh="bottom_plate"/>
+      <geom class="collision" mesh="body"/>
+      <geom class="collision" mesh="top_plate"/>
+      <geom class="collision" mesh="arm_plate"/>
+    </body>
+  </worldbody>
+
+  <!-- ctrl 依次为 X/Y 目标位置（米）和转向目标角（弧度）。
+       kp 决定位置恢复力，kv 决定速度阻尼；这里实现高增益底盘位姿伺服。 -->
+  <actuator>
+    <position name="joint_x" joint="joint_x" kp="1000000" kv="50000"/>
+    <position name="joint_y" joint="joint_y" kp="1000000" kv="50000"/>
+    <position name="joint_th" joint="joint_th" kp="50000" kv="1000"/>
+  </actuator>
+</mujoco>
