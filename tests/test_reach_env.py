@@ -53,6 +53,28 @@ class ReachEnvTests(unittest.TestCase):
         self.assertTrue(truncated)
         self.assertAlmostEqual(reward, -info["distance"])
 
+    def test_rendered_target_tracks_goal_between_episodes(self):
+        env = self.env
+        scene = mujoco.MjvScene(env.model, maxgeom=1000)
+        option = mujoco.MjvOption()
+        camera = mujoco.MjvCamera()
+        for seed in (0, 42, 7):
+            env.reset(seed=seed)
+            for _ in range(2):
+                np.testing.assert_allclose(env.data.site_xpos[env.target_id], env.goal)
+                mujoco.mjv_updateScene(
+                    env.model, env.data, option, None, camera,
+                    mujoco.mjtCatBit.mjCAT_ALL, scene,
+                )
+                markers = [
+                    scene.geoms[i] for i in range(scene.ngeom)
+                    if scene.geoms[i].objtype == mujoco.mjtObj.mjOBJ_SITE
+                    and scene.geoms[i].objid == env.target_id
+                ]
+                self.assertEqual(len(markers), 1)
+                np.testing.assert_allclose(markers[0].pos, env.goal, atol=1e-7)
+                env.step(np.zeros(7))
+
     def test_reject_invalid_actions(self):
         self.env.reset(seed=0)
         for action in (np.zeros(6), np.full(7, np.nan)):

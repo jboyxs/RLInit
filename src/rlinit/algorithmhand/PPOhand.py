@@ -63,6 +63,11 @@ class PPO:
     推荐通过 from_env(env) 自动读取维度。
     """
 
+    variant = "original"
+    policy_net_class = PolicyNet
+    value_net_class = ValueNet
+    supports_minibatches = False
+
     def __init__(self, state_dim=20, hidden_dim=128, action_dim=7,
                  actor_lr=3e-4, critic_lr=1e-3, lmbda=0.95,
                  epochs=10, eps=0.2, gamma=0.99, device="auto"):
@@ -72,8 +77,8 @@ class PPO:
             raise ValueError("gamma/lmbda 应在 [0, 1]，eps 应在 (0, 1)")
         self.device = resolve_device(device)
         self.state_dim, self.action_dim = state_dim, action_dim
-        self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(self.device)
-        self.critic = ValueNet(state_dim, hidden_dim).to(self.device)
+        self.actor = self.policy_net_class(state_dim, hidden_dim, action_dim).to(self.device)
+        self.critic = self.value_net_class(state_dim, hidden_dim).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma, self.lmbda, self.epochs, self.eps = gamma, lmbda, epochs, eps
@@ -109,6 +114,13 @@ class PPO:
         next_states 必须是 step 返回的观测，不能替换成 reset 后的观测。
         兼容旧 dones 字段，但此时将所有 done 视为真正终止，无法区分超时。
         """
+        batch = self._prepare_rollout(transition_dict)
+        for _ in range(self.epochs):
+            losses = self._update_batch(*batch)
+        return losses
+
+    def _prepare_rollout(self, transition_dict, normalize_advantage=True):
+        """在时间顺序不变的完整 rollout 上计算固定的 GAE 和旧策略概率。"""
         def tensor(key):
             result = torch.as_tensor(np.asarray(transition_dict[key]),
                                      dtype=torch.float32, device=self.device)
@@ -144,24 +156,26 @@ class PPO:
                              else self.actor.log_prob(states, actions))
             if old_log_probs.shape != (count,):
                 raise ValueError("log_probs 须为每个动作的联合对数概率")
-            if count > 1:
+            if normalize_advantage and count > 1:
                 advantage = (advantage - advantage.mean()) / (advantage.std(unbiased=False) + 1e-8)
+        return states, actions, advantage, returns, old_log_probs
 
-        for _ in range(self.epochs):
-            log_probs = self.actor.log_prob(states, actions)
-            ratio = torch.exp(log_probs - old_log_probs)
-            surrogate = ratio * advantage
-            clipped = ratio.clamp(1 - self.eps, 1 + self.eps) * advantage
-            actor_loss = -torch.minimum(surrogate, clipped).mean()
-            critic_loss = F.mse_loss(self.critic(states).squeeze(-1), returns)
-            if not torch.isfinite(actor_loss) or not torch.isfinite(critic_loss):
-                raise RuntimeError("PPO 损失非有限，请检查 rollout 或学习率")
-            self.actor_optimizer.zero_grad()
-            actor_loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
-            self.actor_optimizer.step()
-            self.critic_optimizer.zero_grad()
-            critic_loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
-            self.critic_optimizer.step()
+    def _update_batch(self, states, actions, advantage, returns, old_log_probs):
+        """一次梯度更新；三种实验共用原版损失、优化器和梯度裁剪。"""
+        log_probs = self.actor.log_prob(states, actions)
+        ratio = torch.exp(log_probs - old_log_probs)
+        surrogate = ratio * advantage
+        clipped = ratio.clamp(1 - self.eps, 1 + self.eps) * advantage
+        actor_loss = -torch.minimum(surrogate, clipped).mean()
+        critic_loss = F.mse_loss(self.critic(states).squeeze(-1), returns)
+        if not torch.isfinite(actor_loss) or not torch.isfinite(critic_loss):
+            raise RuntimeError("PPO 损失非有限，请检查 rollout 或学习率")
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
+        self.actor_optimizer.step()
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
+        self.critic_optimizer.step()
         return {"actor_loss": actor_loss.item(), "critic_loss": critic_loss.item()}

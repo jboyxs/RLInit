@@ -125,6 +125,31 @@ uv run --no-sync python tests/train_hand.py --evaluate runs/reach_ppohand/ppo_ha
 
 默认输出到 `runs/reach_ppohand/`：模型 `ppo_hand.pt`、回合日志 `episodes.csv`、更新损失 `updates.csv`、配置及最终 10 回合独立评估指标。`.pt` 使用独立格式，不能与 Stable-Baselines3 的 `.zip` 互换；短跑只验证流程，不代表收敛。
 
+### 手写 PPO 的两组独立对照
+
+两版均沿用原版环境、奖励、GAE、动作分布和 Actor/Critic 学习率。默认设置的差异如下：
+
+| 版本 | 网络 | 更新方式 | 入口 | 输出目录 |
+| --- | --- | --- | --- | --- |
+| 原版 | 单层 128，ReLU | 2048 条整批，10 轮 | `tests/train_hand.py` | `runs/reach_ppohand` |
+| 仅网络 | 双层 64，Tanh，SB3 式正交权重初始化 | 原版整批，10 轮 | `tests/train_hand_network.py` | `runs/reach_ppohand_network` |
+| 仅更新方式 | 原版单层 128，ReLU | 每轮打乱，每批 64 条，10 轮，批内优势归一化 | `tests/train_hand_minibatch.py` | `runs/reach_ppohand_minibatch` |
+
+网络版保留原版 `log_std=-0.5` 和 tanh 动作变换；小批次版保留原版独立优化器和损失。两版不是完整替换为 SB3 PPO，便于比较网络和更新方式各自的影响。`--hidden-dim` 在网络版中指定两个隐藏层各自的宽度，默认均为 64；小批次版可用 `--batch-size` 修改批大小，尾批也参与更新。
+
+```powershell
+# 仅更换网络。
+uv run --no-sync python tests/train_hand_network.py --timesteps 300000 --seed 0
+uv run --no-sync python tests/train_hand_network.py --evaluate runs/reach_ppohand_network/ppo_hand.pt --render --episodes 20 --seed 10000
+# 仅更换更新方式。
+uv run --no-sync python tests/train_hand_minibatch.py --timesteps 300000 --batch-size 64 --seed 0
+uv run --no-sync python tests/train_hand_minibatch.py --evaluate runs/reach_ppohand_minibatch/ppo_hand.pt --render --episodes 20 --seed 10000
+```
+
+两版均在训练结束后保存 `ppo_hand.pt` 并自动评估 10 回合，输出文件名和日志字段与原版一致。新检查点记录版本，评估时自动创建对应网络；原版旧检查点仍可加载。比较各版时使用相同训练预算和评估 `--seed`，以便目标点一致。
+
+四版（原版手写、网络修改版、小批次修改版、SB3）训练结束后的自动评估统一使用 `训练 seed + 20000` 作为首回合种子，之后每回合递增 1，共评估 10 回合。该规则由 `src/rlinit/algorithmhand/evaluation.py` 统一定义；终端打印实际种子，`config.json` 的 `final_eval_seed` 字段记录该值。例如训练 `--seed 0` 时，自动评估的目标种子为 `20000` 到 `20009`。手动评估仍直接使用命令行 `--seed`。
+
 ### 两台设备：CPU / RTX 3060
 
 两台设备共用 `pyproject.toml` 和 `uv.lock`，分别选择互斥的 PyTorch extra。`uv sync` 不检测显卡，应明确指定 `cpu` 或 `cuda`，不要同时启用两者（也不要使用 `--all-extras`）。配置方式见 [uv 官方 PyTorch 指南](https://docs.astral.sh/uv/guides/integration/pytorch/#configuring-accelerators-with-optional-dependencies)。

@@ -12,7 +12,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--timesteps", type=int, default=300_000)
     parser.add_argument("--output-dir", type=Path, default=Path("runs/reach_ppo"))
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=0,
+                        help="Training seed; final evaluation starts at seed + 20000. In evaluation mode, the first episode seed.")
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL)
     parser.add_argument("--n-steps", type=int, default=2048)
     parser.add_argument("--batch-size", type=int, default=64)

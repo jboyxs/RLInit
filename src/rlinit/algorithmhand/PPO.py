@@ -9,6 +9,7 @@ from stable_baselines3.common.monitor import Monitor
 
 from .reach_env import DEFAULT_MODEL, ReachEnv
 from .device import resolve_device
+from .evaluation import final_eval_seed
 
 
 def train_ppo(
@@ -32,6 +33,7 @@ def train_ppo(
     if n_steps % batch_size:
         raise ValueError("batch_size must divide n_steps")
     selected_device = resolve_device(device)
+    eval_seed = final_eval_seed(seed)
     output = Path(output_dir).resolve()
     output.mkdir(parents=True, exist_ok=True)
     env = Monitor(ReachEnv(model_path, render_mode="human" if render else None), str(output / "train"), info_keywords=("distance", "is_success"))
@@ -54,13 +56,15 @@ def train_ppo(
         agent.save(checkpoint)
         config = {
             "model_path": str(Path(model_path).resolve()), "seed": seed,
+            "final_eval_seed": eval_seed,
             "requested_timesteps": total_timesteps, "actual_timesteps": agent.num_timesteps,
             "n_steps": n_steps, "batch_size": batch_size,
             "render": render,
             "device": str(selected_device),
         }
         (output / "config.json").write_text(json.dumps(config, indent=2) + "\n")
-        metrics = evaluate_ppo(checkpoint, episodes=10, seed=seed + 20_000, model_path=model_path, device=selected_device)
+        print(f"Final evaluation seed: {eval_seed}", flush=True)
+        metrics = evaluate_ppo(checkpoint, episodes=10, seed=eval_seed, model_path=model_path, device=selected_device)
         (output / "metrics.json").write_text(json.dumps(metrics, indent=2) + "\n")
         print(f"Saved: {checkpoint}\nEvaluation: {metrics}")
         return checkpoint

@@ -43,7 +43,10 @@ def _fixed_arm_model(path: Path) -> tuple[mujoco.MjModel, np.ndarray]:
     ET.SubElement(contact, "exclude", body1="gen3/base_link", body2="shoulder_link")
     world = root.find("worldbody")
     ET.SubElement(world, "geom", name="floor", type="plane", size="3 3 0.1", rgba="0.3 0.3 0.3 1")
-    ET.SubElement(world, "site", name="target", type="sphere", size="0.02", group="0", rgba="0.2 0.9 0.2 0.7")
+    # World-attached sites have cached transforms; use mocap to move the marker
+    # between episodes without adding joints or collision geometry.
+    target_body = ET.SubElement(world, "body", name="target_marker", mocap="true")
+    ET.SubElement(target_body, "site", name="target", type="sphere", size="0.02", group="0", rgba="0.2 0.9 0.2 0.7")
     return (
         mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode")),
         np.array([home_controls[name] for name in ARM_NAMES]),
@@ -74,6 +77,7 @@ class ReachEnv(gym.Env):
         self.actuators = np.array([self.model.actuator(name).id for name in ARM_NAMES])
         self.ee_id = self.model.site("pinch_site").id
         self.target_id = self.model.site("target").id
+        self.target_mocap_id = self.model.body_mocapid[self.model.body("target_marker").id]
         self.lower = np.full(7, -np.inf)
         self.upper = np.full(7, np.inf)
         for i, (joint, actuator) in enumerate(zip(self.joints, self.actuators)):
@@ -121,7 +125,7 @@ class ReachEnv(gym.Env):
                 break
         else:
             raise RuntimeError("Could not sample a collision-free nearby target")
-        self.model.site_pos[self.target_id] = self.goal
+        self.data.mocap_pos[self.target_mocap_id] = self.goal
         mujoco.mj_forward(self.model, self.data)
         self.steps = 0
         if self.render_mode == "human":
