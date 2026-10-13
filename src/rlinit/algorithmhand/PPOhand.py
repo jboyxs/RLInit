@@ -1,4 +1,4 @@
-"""手写连续动作 PPO，适配 ReachEnv 的 20 维观测和 7 维动作。
+"""手写连续动作 PPO，通过 from_env 适配到达或开门任务的维度。
 
 动作是 [-1, 1] 内的关节目标增量，由环境映射为位置执行器输入。
 采样期间不要更新策略；update 接收单环境按时间顺序排列的 rollout。
@@ -29,7 +29,7 @@ class PolicyNet(torch.nn.Module):
         mean, std = self(states)
         actions = actions.clamp(-1 + 1e-6, 1 - 1e-6)
         raw_actions = torch.atanh(actions)
-        # tanh 变换的 Jacobian 修正；七个关节共同组成一个动作。
+        # tanh 变换的 Jacobian 修正；所有动作分量共同组成一个动作。
         return (Normal(mean, std).log_prob(raw_actions)
                 - torch.log1p(-actions.square())).sum(dim=-1)
 
@@ -66,15 +66,17 @@ class PPO:
     variant = "original"
     policy_net_class = PolicyNet
     value_net_class = ValueNet
-    supports_minibatches = False
+    supports_minibatches = True
 
     def __init__(self, state_dim=20, hidden_dim=128, action_dim=7,
                  actor_lr=3e-4, critic_lr=1e-3, lmbda=0.95,
-                 epochs=10, eps=0.2, gamma=0.99, device="auto"):
+                 epochs=10, eps=0.2, gamma=0.99, device="auto", batch_size=64):
         if min(state_dim, hidden_dim, action_dim, epochs) < 1:
             raise ValueError("网络维度和 epochs 必须为正整数")
         if not (0 <= gamma <= 1 and 0 <= lmbda <= 1 and 0 < eps < 1):
             raise ValueError("gamma/lmbda 应在 [0, 1]，eps 应在 (0, 1)")
+        if not isinstance(batch_size, int) or batch_size < 2:
+            raise ValueError("batch_size 必须是至少为 2 的整数")
         self.device = resolve_device(device)
         self.state_dim, self.action_dim = state_dim, action_dim
         self.actor = self.policy_net_class(state_dim, hidden_dim, action_dim).to(self.device)
@@ -82,6 +84,7 @@ class PPO:
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma, self.lmbda, self.epochs, self.eps = gamma, lmbda, epochs, eps
+        self.batch_size = batch_size
 
     @classmethod
     def from_env(cls, env, **kwargs):
@@ -94,7 +97,7 @@ class PPO:
 
     @torch.no_grad()
     def take_action(self, state, deterministic=False, return_log_prob=False):
-        """返回 (7,) float32 动作；可同时返回采样策略的联合 log_prob。"""
+        """返回 (action_dim,) float32 动作；可返回联合 log_prob。"""
         state = torch.as_tensor(np.asarray(state), dtype=torch.float32, device=self.device)
         if state.shape != (self.state_dim,) or not torch.isfinite(state).all():
             raise ValueError(f"state 必须是 {self.state_dim} 维有限向量")
@@ -114,10 +117,20 @@ class PPO:
         next_states 必须是 step 返回的观测，不能替换成 reset 后的观测。
         兼容旧 dones 字段，但此时将所有 done 视为真正终止，无法区分超时。
         """
-        batch = self._prepare_rollout(transition_dict)
+        # 先在完整时间序列上计算一次 GAE、returns 和旧策略概率。
+        batch = self._prepare_rollout(transition_dict, normalize_advantage=False)
+        count = len(batch[0])
+        losses = []
         for _ in range(self.epochs):
-            losses = self._update_batch(*batch)
-        return losses
+            indices = torch.as_tensor(np.random.permutation(count), device=self.device)
+            for start in range(0, count, self.batch_size):
+                selected = indices[start:start + self.batch_size]
+                states, actions, advantage, returns, old_log_probs = (x[selected] for x in batch)
+                # 每批单独归一化；单条尾批跳过标准差计算。
+                if len(advantage) > 1:
+                    advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
+                losses.append(self._update_batch(states, actions, advantage, returns, old_log_probs))
+        return {key: float(np.mean([loss[key] for loss in losses])) for key in losses[0]}
 
     def _prepare_rollout(self, transition_dict, normalize_advantage=True):
         """在时间顺序不变的完整 rollout 上计算固定的 GAE 和旧策略概率。"""

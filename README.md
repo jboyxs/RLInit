@@ -113,7 +113,7 @@ checkpoint = train_ppo(total_timesteps=300_000, output_dir="runs/reach_ppo", see
 
 ### 手写 PPO 训练
 
-`tests/train_hand.py` 使用 `PPOhand.py`，通过 `PPO.from_env(env)` 自动读取观测和动作维度。每次收集 `--n-steps` 步后，使用整段 rollout 更新 `--epochs` 轮。
+`tests/train_hand.py` 使用 `PPOhand.py`，通过 `PPO.from_env(env)` 自动读取观测和动作维度。每次收集 `--n-steps` 步后，先按时间顺序计算一次 GAE 和固定目标，再在每个 epoch 打乱样本，按 `--batch-size` 更新。默认每批 64 条，更新 10 轮；批内优势归一化，单条尾批跳过归一化，损失记录所有小批次的平均值。
 
 ```bash
 # 短跑验证；加 --render 可观察训练。
@@ -126,23 +126,23 @@ uv run --no-sync python tests/train_hand.py --evaluate runs/reach_ppohand/ppo_ha
 
 默认输出到 `runs/reach_ppohand/`：模型 `ppo_hand.pt`、回合日志 `episodes.csv`、更新损失 `updates.csv`、配置及最终 10 回合独立评估指标。`.pt` 使用独立格式，不能与 Stable-Baselines3 的 `.zip` 互换；短跑只验证流程，不代表收敛。
 
-### 手写 PPO 的两组独立对照
+### 手写 PPO 的网络版与兼容入口
 
-两版均沿用原版环境、奖励、GAE、动作分布和 Actor/Critic 学习率。默认设置的差异如下：
+原版 `PPOhand.py` 现在已采用打乱小批次更新。网络版继承这一更新方式；`PPOhand_minibatch.py` 保留旧检查点的 `minibatch` 版本名并共用原版实现，当前不再构成独立的更新方式对照。此前整批更新生成的原版检查点仍可加载。当前默认设置如下：
 
 | 版本 | 网络 | 更新方式 | 入口 | 输出目录 |
 | --- | --- | --- | --- | --- |
-| 原版 | 单层 128，ReLU | 2048 条整批，10 轮 | `tests/train_hand.py` | `runs/reach_ppohand` |
-| 仅网络 | 双层 64，Tanh，SB3 式正交权重初始化 | 原版整批，10 轮 | `tests/train_hand_network.py` | `runs/reach_ppohand_network` |
-| 仅更新方式 | 原版单层 128，ReLU | 每轮打乱，每批 64 条，10 轮，批内优势归一化 | `tests/train_hand_minibatch.py` | `runs/reach_ppohand_minibatch` |
+| 原版 | 单层 128，ReLU | 每轮打乱，每批 64 条，10 轮 | `tests/train_hand.py` | `runs/reach_ppohand` |
+| 网络版 | 双层 64，Tanh，SB3 式正交权重初始化 | 同原版 | `tests/train_hand_network.py` | `runs/reach_ppohand_network` |
+| 小批次兼容入口 | 单层 128，ReLU | 同原版 | `tests/train_hand_minibatch.py` | `runs/reach_ppohand_minibatch` |
 
-网络版保留原版 `log_std=-0.5` 和 tanh 动作变换；小批次版保留原版独立优化器和损失。两版不是完整替换为 SB3 PPO，便于比较网络和更新方式各自的影响。`--hidden-dim` 在网络版中指定两个隐藏层各自的宽度，默认均为 64；小批次版可用 `--batch-size` 修改批大小，尾批也参与更新。
+网络版保留原版 `log_std=-0.5` 和 tanh 动作变换；三个入口都保留原版独立优化器和损失，并非完整替换为 SB3 PPO。`--hidden-dim` 在网络版中指定两个隐藏层各自的宽度，默认均为 64；三个入口均可用 `--batch-size` 修改批大小，尾批也参与更新。
 
 ```powershell
 # 仅更换网络。
 uv run --no-sync python tests/train_hand_network.py --timesteps 300000 --seed 0
 uv run --no-sync python tests/train_hand_network.py --evaluate runs/reach_ppohand_network/ppo_hand.pt --render --episodes 20 --seed 10000
-# 仅更换更新方式。
+# 小批次兼容入口，与当前原版的更新方式一致。
 uv run --no-sync python tests/train_hand_minibatch.py --timesteps 300000 --batch-size 64 --seed 0
 uv run --no-sync python tests/train_hand_minibatch.py --evaluate runs/reach_ppohand_minibatch/ppo_hand.pt --render --episodes 20 --seed 10000
 ```
@@ -222,5 +222,33 @@ R:  小奖励和大奖励和惩罚 夹爪接近把手  抓取姿态对准  双�
   + 开门进度奖励
   + 成功奖励
   − 不良碰撞和动作惩罚
-P,gama
+P:仿真引擎决定
+gama:自定义
+
+实现位于 `src/rlinit/algorithmhand/door_env.py`，训练入口为 `tests/trainp2_hand.py`，使用原版 `PPOhand.PPO.from_env(env)`。第一版在内存中移除三个底盘关节及执行器，真正固定底盘，保留七个机械臂、八个夹爪机构关节和两个门关节，共 17 个位置/速度坐标、8 个动作输入；源 XML 不变。
+
+| 要素 | 当前实现 |
+| --- | --- |
+| S / 观测 | 64 维：全部 `qpos/qvel`（34）、累计臂目标（7）、上一动作（8）、首次抓取/压把手标记（2）、成功保持计时和回合时间比例（2）、相对抓取位置（3）、相对姿态矩阵前两列（6）、左右指垫法向接触力（2）。位置/速度和力按固定尺度缩放。 |
+| A | `[-1,1]^8`：前七维使累计关节目标每次增减至多 `0.03 rad`，并限制到关节及执行器允许范围；无显式限位的关节先使用 `home ± π` 的控制范围。最后一维绝对映射到 `0–170` 夹爪命令。机械臂偏置力矩前馈通过原位置执行器实现，力矩限制仍生效。 |
+| R | 进度奖励使用 `γΦ(s_next)−Φ(s)`；`Φ=2×接近度+接近度×姿态对准度+2×双侧抓取×把手进度+10×开门进度`。接近度为 `exp(-距离/0.08)`，把手进度按 `1.3 rad` 归一化，开门进度按成功角度归一化并限制在 `[0,1]`。首次双侧抓取 +2，抓住且压把手到 `1.1 rad` 首次 +3，成功 +50，失败 −20；另有碰撞、动作幅度、动作变化和每步 −0.01 的时间惩罚。真正终止时 `Φ(s_next)=0`，超时截断保留下一状态势函数和价值 bootstrap。 |
+| P | MuJoCo，每个动作保持 10 个 `0.002 s` 物理步，控制频率 50 Hz。门和把手保持被动，仅通过物理接触运动。 |
+| γ | 默认 `0.999`，通过 `--gamma` 配置，奖励势函数和 PPO 使用同一个值。 |
+
+每回合从 `home` 加少量关节扰动开始。成功条件为门角度至少 `0.30 rad`（约 17.2°），且双侧指垫均有超过 `0.05 N` 的法向接触，连续保持 0.30 秒（按控制周期采样）。最大回合 1000 个动作（20 秒）；严重接触穿透或不良碰撞结束回合并惩罚。门闩与门框的正常接触、夹爪与把手的接触不属于碰撞惩罚。
+
+```powershell
+# 完整的环境行为验证：固定约束、真实接触开门成功、PPO 更新和检查点恢复。
+uv run --no-sync python -m unittest discover -s tests -p test_door_env.py -v
+# 短训练验证流程，不代表已经学会开门。
+uv run --no-sync python tests/trainp2_hand.py --timesteps 4096 --n-steps 512 --batch-size 64 --epochs 2 --episodes 3 --output-dir runs/door_ppohand_smoke
+# 训练；300000 步是初始预算，是否收敛以独立评估为准。
+uv run --no-sync python tests/trainp2_hand.py --timesteps 300000 --batch-size 64 --gamma 0.999
+# 实时观察训练。
+uv run --no-sync python tests/trainp2_hand.py --timesteps 300000 --render
+# 评估：环境配置随检查点恢复，--seed 指定首个评估种子。
+uv run --no-sync python tests/trainp2_hand.py --evaluate runs/door_ppohand/ppo_hand.pt --episodes 10 --seed 20000 --render
+```
+
+默认输出到 `runs/door_ppohand/`：`ppo_hand.pt`、`config.json`、`episodes.csv`、`updates.csv` 和 `metrics.json`。每次 PPO 更新后保存检查点；训练结束后按 `训练 seed + 20000` 自动独立评估，默认 10 回合。指标包含成功率、曾抓住把手比例、曾压下把手比例、最终/最大门角度及失败原因。检查点保存批大小、gamma 和完整环境配置，并与到达任务检查点区分格式。当前未加入示范学习或自动课程，完成物理脚本验证并不意味着 PPO 已经学会这一连续动作序列。
 

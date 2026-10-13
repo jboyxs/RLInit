@@ -1,7 +1,7 @@
 """网络对照版：仅对齐 SB3 的双层 Tanh MLP 与正交权重初始化。
 
 默认 Actor 为 20→64→64→7，Critic 为 20→64→64→1。
-动作分布（含 log_std=-0.5）、tanh 动作变换、学习率和整批更新沿用原版。
+动作分布（含 log_std=-0.5）、tanh 动作变换、学习率和小批次更新沿用原版。
 """
 
 import math
@@ -51,6 +51,6 @@ class PPO(BasePPO):
 
     def __init__(self, state_dim=20, hidden_dim=64, action_dim=7,
                  actor_lr=3e-4, critic_lr=1e-3, lmbda=0.95,
-                 epochs=10, eps=0.2, gamma=0.99, device="auto"):
+                 epochs=10, eps=0.2, gamma=0.99, device="auto", batch_size=64):
         super().__init__(state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
-                         lmbda, epochs, eps, gamma, device)
+                         lmbda, epochs, eps, gamma, device, batch_size=batch_size)
