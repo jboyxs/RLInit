@@ -1,0 +1,25 @@
+<mujoco model="TidyBot and door">
+  <include file="stanford_tidybot/tidybot.xml"/>
+  <include file="objects/door_lock_fixture.xml"/>
+  <!-- Resolve the robot meshes relative to this scene entry point. -->
+  <compiler angle="radian" meshdir="stanford_tidybot/assets"/>
+  <option timestep="0.002" integrator="implicitfast" cone="elliptic" impratio="10"/>
+  <statistic center="0.4 0 0.65" extent="1.8" meansize="0.05"/>
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="45" elevation="-20" offwidth="960" offheight="720"/>
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0.05 0.08 0.12" width="512" height="3072"/>
+    <texture name="scene_ground" type="2d" builtin="checker" rgb1="0.2 0.25 0.3" rgb2="0.15 0.18 0.22" width="300" height="300"/>
+    <material name="scene_ground" texture="scene_ground" texuniform="true" texrepeat="5 5"/>
+  </asset>
+  <worldbody>
+    <light pos="-1 1 3" dir="1 -1 -2" directional="true" castshadow="false" diffuse="0.8 0.8 0.8"/>
+    <geom name="floor" type="plane" size="3 3 0.05" material="scene_ground"/>
+  </worldbody>
+  <!-- Robot home/retract keyframes come from tidybot.xml; MuJoCo pads the two
+       appended passive door coordinates with zeros (closed door / level handle).
+       Load home explicitly with mj_resetDataKeyframe before viewing/stepping. -->
+</mujoco>

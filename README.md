@@ -77,7 +77,8 @@ uv sync --extra cpu
 uv run --no-sync python scripts/view_robot.py
 ```
 
-### 第一个任务：PPO 训练
+### 第一个任务：PPO 训练-先实现固定底盘，末端到达目标点（简单任务验证）
+
 
 代码位于 `src/rlinit/algorithmhand/`：`reach_env.py` 实现上述到达任务，`PPO.py` 调用 [Stable-Baselines3 PPO](https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html) 提供可复用的训练和评估函数，仓库根目录的 `train.py` 是实际运行入口，负责解析参数并调用这些函数。环境从 TidyBot XML 在内存中移除底盘和夹爪自由度，保留七个臂关节；原模型文件不变。第一版只以位置到达为成功条件，尚未加入碰撞失败判定或末端姿态要求。
 
@@ -175,3 +176,51 @@ uv run --no-sync python -c "import torch; print(torch.__version__, torch.version
 显卡机器需要可运行 CUDA 12.8 的 NVIDIA 驱动；安装 CUDA 版 PyTorch 后仍应以上述检查的 `True` 为准。CPU 机器应显示 CUDA 构建版本为 `None`，可用性为 `False`。可用 `--device cpu` 强制 CPU；训练记录所选设备，评估加载模型时重新选择当前设备，允许两台设备间迁移检查点。
 
 GPU 用于策略和价值网络的计算，当前 MuJoCo 物理步进仍在 CPU；小型 MLP 的 PPO 不保证使用 GPU 更快，应比较实际训练耗时。
+### 第二个任务：PPO 训练-移动机械臂开门（final goal）
+1. 怎么建模门--直接用现有的model
+门是否有现有的各种物理属性建模地都比较好的符合现实物理世界的门
+2. 机器人和门同场景
+能正常加载、位置合理、没有初始穿插
+
+场景入口为 `models/door_scene.xml`，复用 TidyBot，并引入 `models/objects/door_lock_fixture.xml`。门模型改自下载的 `door_lock.xml`：保留原门板尺寸、质量/惯量和两个被动关节，使用纯色材质并添加落地支撑立柱；原下载文件不变。门框固定，把手约在世界坐标 `[0.720, 0.000, 0.775] m`，位于机器人 `home` 姿态的夹爪前方约 14 cm。底盘、机械臂和夹爪自由度均保留。
+
+```powershell
+# 静态查看组合场景，自动加载 home 关键帧。
+uv run --no-sync python tests/view_door_scene.py
+# 检查默认姿态和 home 的穿插、机器人与门的间距、地面间距及 2 秒物理步进。
+uv run --no-sync python tests/view_door_scene.py --check
+# 验证并保存 home 姿态截图，不打开窗口。
+uv run --no-sync python tests/view_door_scene.py --check --screenshot runs/door_scene/preview.png
+```
+
+其他加载代码也应显式调用 `mujoco.mj_resetDataKeyframe(model, data, model.key("home").id)`，然后调用 `mujoco.mj_forward(model, data)`。上述查看脚本仅验证场景装配与初始状态；抓取与开门验证见下节。门轴范围沿用原资产的 `0–0.4 rad`（约 23°），后续若采用更大的开门成功角度，需要调整范围并验证门闩和门框的接触。
+
+3. 抓取与开门的物理验证
+
+`tests/verify_door_opening.py` 使用确定性脚本控制：夹爪绕接近方向转 90°，使两指跨把手厚度闭合；接近把手后用 `170/255` 的夹爪命令抓取，再压把手并沿门轴圆弧拉门。机械臂使用位置执行器和偏置力矩前馈，执行器原有力矩限制仍生效。真实仿真的门关节保持被动，未直接设置门角度、未加焊接约束、未对门施加外力；单独的参考状态用于计算末端目标轨迹。
+
+```powershell
+# 完整验证：正常抓取开门 + 不压把手 + 不闭合夹爪，两组失败对照。
+uv run --no-sync python tests/verify_door_opening.py
+# 实时查看正常动作；之后自动运行无窗口对照。
+uv run --no-sync python tests/verify_door_opening.py --render
+# 保存动作 GIF、抓取/压把手/开门 PNG、报告和轨迹。
+uv run --no-sync python tests/verify_door_opening.py --record
+```
+
+结果写入 `runs/door_opening/validation.json` 和 `trajectory.csv`，任何验收项失败时进程返回非零退出码。检查包括双侧指垫接触力、抓取后的保持、开门角度、两组失败对照、每个物理步的有限状态/警告/接触穿透，以及底盘位置保持。正常运行的门角度约 20.08°，拉门和保持阶段 50 Hz 采样均有双侧指垫接触，最大接触穿透约 0.28 mm；不压把手和不闭合夹爪的最终门角度分别约 0.82°、0.60°。穿透验收上限为 1.5 mm，属于 MuJoCo 柔顺接触的数值容差。
+
+这是当前小型实验门上的物理控制验证，尚未训练 PPO，也未验证机器人通行或真实门迁移。本次动作中把手压下约 73°；这是此资产上的控制轨迹，不应直接视作普通房间门所需的把手角度。
+4. 建模成MDP 
+<S,A,R,P,gama>
+S:  机器人关节位置、速度  夹爪实际开合状态  门角度、角速度  把手角度、角速度  控制器中会影响下一步的变量
+A:  A = [七个机械臂关节的目标角度增量，夹爪开合命令]
+R:  小奖励和大奖励和惩罚 夹爪接近把手  抓取姿态对准  双侧指垫抓住把手  抓住后压下把手  门被进一步打开  达到成功开度  撞门框、撞地面、动作过于剧烈
+奖励 =
+  接近和对准的奖励
+  + 抓取、压把手的奖励
+  + 开门进度奖励
+  + 成功奖励
+  − 不良碰撞和动作惩罚
+P,gama
+
