@@ -263,3 +263,61 @@ uv run --no-sync python tests/trainp2_sb3.py --evaluate runs/door_sb3/best/best_
 
 `--n-steps`、`--batch-size`、`--epochs`、`--gamma` 只有显式传入时才覆盖 SB3 默认值。`--max-steps`、`--action-scale` 和 `--initial-noise` 是任务环境参数。评估时这些训练参数从模型恢复；只需指定检查点、种子、回合数和是否渲染。`.zip` 与手写版 `.pt` 使用不同的加载入口。
 
+6. Curriculum Learning：独立课程环境与训练入口
+
+课程环境为 `src/rlinit/algorithmhand/door_curriculum_env.py`，训练脚本为 `tests/train_curriculum.py`。复用原环境的机器人、接触、动作映射和失败检查，使用独立的阶段目标、密集奖励和初始化分布；原 `door_env.py` 及两个原训练入口保持独立。
+
+| 阶段 | 较容易的初始状态 | 本阶段成功条件 | 时间上限 |
+| --- | --- | --- | --- |
+| `reach` | 已对准、离预抓取点约 4 cm | 到预抓取点 2 cm 内，姿态对准度至少 0.98，保持 0.10 s；夹爪保持张开 | 250 步 / 5 s |
+| `grasp` | 已到预抓取点、夹爪张开 | 双侧指垫接触力均超过 0.05 N，保持 0.10 s | 350 步 / 7 s |
+| `press` | 已抓住把手、门关闭 | 保持双侧抓取，把手角度至少 1.1 rad，保持 0.10 s | 400 步 / 8 s |
+| `open` | 已抓住并压下把手、门关闭 | 保持抓取，门角度至少 0.30 rad，保持 0.30 s | 500 步 / 10 s |
+| `full` | 初期混合容易起点与 home，逐步全部从 home 开始 | 完整接近、抓取、压把手、拉门，开门与保持条件同 `open` | 1000 步 / 20 s |
+
+容易起点由机器人位置执行器实际仿真生成，保存关节位置/速度、夹爪机构和控制器目标等状态，仅在 `reset()` 恢复；没有固定抓取、直接驱动门或在策略执行中调用脚本控制器。`home_probability` 表示从原始 home 姿态起步的概率。`reach` 阶段从 0 逐步增加到 1，达标后依次学习 `grasp`、`press`、`open`；随后 `full` 从默认 0.25 逐步增加到 1。70 维观测由原 64 维加五维阶段标记和 home 起步概率组成；动作仍为八维机器人输入。
+
+每步奖励采用当前目标的非正密集成本：`-5×距离`、`-0.25×姿态误差`、未抓住 `-0.5`、未完成压把手/开门的归一化误差；保留动作、平滑性、不良碰撞与时间惩罚。子任务成功一次奖励 +20，完整任务成功 +50，失败 -50。后续阶段松开把手也不会移除压把手和开门成本。密集成本用于鼓励尽快完成当前目标，评估同时记录失败原因与回合长度，不能仅凭平均回报判断是否学会。
+
+SB3 网络、初始化及优化器仍使用默认设置（双层 64 Tanh），默认 gamma=0.99。每次独立评估默认 10 回合，连续两次成功率至少 80% 才升级；步数达到上限不会强制升级。两个渐进阶段的 home 概率每次增加 0.25。只有 `full` 且全部从 home 起步的阶段也达标，才标记课程完成。训练结束始终另行从 home 评估完整任务，容易起点的子任务成功不计作完整任务成功。
+
+```powershell
+# 课程训练：默认总预算 100 万步，评估后自动升级。
+uv run --no-sync python tests/train_curriculum.py --timesteps 1000000
+# 实时观察当前课程阶段。
+uv run --no-sync python tests/train_curriculum.py --timesteps 1000000 --render
+# 查看检查点对应的当前课程阶段。
+uv run --no-sync python tests/train_curriculum.py --evaluate runs/door_curriculum/ppo_curriculum.zip --episodes 10 --seed 20000 --render
+# 严格验证完整开门：所有回合从 home 开始。
+uv run --no-sync python tests/train_curriculum.py --evaluate runs/door_curriculum/ppo_curriculum.zip --full-task --episodes 10 --seed 20000 --render
+# 验证每个子任务的物理可解性、课程升级与检查点恢复。
+uv run --no-sync python -m unittest discover -s tests -p test_door_curriculum.py -v
+```
+
+结果写入 `runs/door_curriculum/`：`ppo_curriculum.zip`、阶段最佳模型 `best/`、`curriculum.csv`、各阶段 Monitor 日志、`logs/progress.csv`、阶段评估 JSON、`config.json` 和最终从 home 评估的 `metrics.json`。`curriculum.csv` 记录实际步数、阶段、home 比例、阶段成功率和升级结果；配置记录当前阶段与是否完成课程。阶段最佳模型先按成功率、再按平均回报选择。
+
+可通过 `--eval-freq`、`--success-threshold`、`--patience`、`--home-step` 调整课程升级规则；`--stage` 和 `--home-probability` 可用于单阶段实验，`--full-task` 用于严格完整任务评估。课程检查点包含环境和课程配置，观测维度与原 64 维环境不同，需用此入口评估。课程能增加成功经历的可获得性，完整开门是否学会仍以最终从 home 的成功率为准。
+
+7. 使用手写 PPOhand 进行相同课程训练
+
+`tests/train_curriculum_hand.py` 使用 `PPOhand.PPO.from_env(env)`，复用上述 `DoorCurriculumEnv`；两种 PPO 共用 `src/rlinit/algorithmhand/door_curriculum.py` 中的课程升级规则和确定性评估。阶段、奖励、70 维观测、8 维动作、容易起点、成功条件以及默认的 80% / 连续两次 / home 每次增加 0.25 均相同。
+
+手写版继续使用 Actor/Critic 各两层 128 ReLU、tanh 高斯策略、Actor 学习率 `3e-4`、Critic 学习率 `1e-3`，每个 rollout 按时间顺序计算 GAE，再打乱顺序、小批次更新。默认 rollout 2048、批大小 64、更新 10 轮；新课程入口默认 `gamma=0.99`，与 SB3 课程一致，`--gamma 0.999` 可覆盖。课程实现位于独立训练入口，原 `PPOhand.py` 和 `tests/trainp2_hand.py` 的行为不变。
+
+课程评估在一次完整 rollout 更新结束后进行，因此默认约每 10240 步评估一次；最后一个 rollout 按剩余预算缩短。升级时清空已经消费的 rollout 并重置环境，保留同一组网络和优化器状态。阶段切换或预算结束时尚未完成的训练回合会在 `episodes.csv` 的 `cutoff` 字段标记，独立评估均执行完整回合。
+
+```powershell
+# 手写 PPO 的课程训练。
+uv run --no-sync python tests/train_curriculum_hand.py --timesteps 1000000
+# 实时观察训练。
+uv run --no-sync python tests/train_curriculum_hand.py --timesteps 1000000 --render
+# 评估保存的当前课程阶段。
+uv run --no-sync python tests/train_curriculum_hand.py --evaluate runs/door_curriculum_hand/ppo_curriculum_hand.pt --episodes 10 --seed 20000 --render
+# 所有回合从 home 开始，评估完整开门。
+uv run --no-sync python tests/train_curriculum_hand.py --evaluate runs/door_curriculum_hand/ppo_curriculum_hand.pt --full-task --episodes 10 --seed 20000 --render
+# 验证手写 PPO 更新、检查点恢复、阶段切换及与 SB3 评估口径一致。
+uv run --no-sync python -m unittest discover -s tests -p test_door_curriculum_hand.py -v
+```
+
+默认输出到 `runs/door_curriculum_hand/`：`ppo_curriculum_hand.pt`、各阶段最佳模型 `best/*.pt`、`episodes.csv`、`updates.csv`、`curriculum.csv`、阶段评估 JSON、`config.json` 和从 home 评估完整任务的 `metrics.json`。检查点保存网络、优化器、环境、课程配置与升级进度；当前入口支持训练和评估。手写课程 `.pt`、SB3 课程 `.zip` 和原 64 维任务 `.pt` 分别用各自入口加载。
+
