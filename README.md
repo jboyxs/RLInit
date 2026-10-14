@@ -126,30 +126,14 @@ uv run --no-sync python tests/train_hand.py --evaluate runs/reach_ppohand/ppo_ha
 
 默认输出到 `runs/reach_ppohand/`：模型 `ppo_hand.pt`、回合日志 `episodes.csv`、更新损失 `updates.csv`、配置及最终 10 回合独立评估指标。`.pt` 使用独立格式，不能与 Stable-Baselines3 的 `.zip` 互换；短跑只验证流程，不代表收敛。
 
-### 手写 PPO 的网络版与兼容入口
+手写 PPO 统一使用 `PPOhand.py`，默认双层 128 ReLU、打乱小批次更新；`--hidden-dim` 设置两层宽度，`--batch-size` 设置批大小。主版旧单层检查点仍可评估。
 
-原版 `PPOhand.py` 现在已采用打乱小批次更新。网络版继承这一更新方式；`PPOhand_minibatch.py` 保留旧检查点的 `minibatch` 版本名并共用原版实现，当前不再构成独立的更新方式对照。此前整批更新生成的原版检查点仍可加载。当前默认设置如下：
+| 任务 | 手写 PPO 入口 | SB3 基准入口 |
+| --- | --- | --- |
+| 固定底盘到达 | `tests/train_hand.py` | `train.py` |
+| 固定底盘开门 | `tests/trainp2_hand.py` | `tests/trainp2_sb3.py` |
 
-| 版本 | 网络 | 更新方式 | 入口 | 输出目录 |
-| --- | --- | --- | --- | --- |
-| 原版 | 单层 128，ReLU | 每轮打乱，每批 64 条，10 轮 | `tests/train_hand.py` | `runs/reach_ppohand` |
-| 网络版 | 双层 64，Tanh，SB3 式正交权重初始化 | 同原版 | `tests/train_hand_network.py` | `runs/reach_ppohand_network` |
-| 小批次兼容入口 | 单层 128，ReLU | 同原版 | `tests/train_hand_minibatch.py` | `runs/reach_ppohand_minibatch` |
-
-网络版保留原版 `log_std=-0.5` 和 tanh 动作变换；三个入口都保留原版独立优化器和损失，并非完整替换为 SB3 PPO。`--hidden-dim` 在网络版中指定两个隐藏层各自的宽度，默认均为 64；三个入口均可用 `--batch-size` 修改批大小，尾批也参与更新。
-
-```powershell
-# 仅更换网络。
-uv run --no-sync python tests/train_hand_network.py --timesteps 300000 --seed 0
-uv run --no-sync python tests/train_hand_network.py --evaluate runs/reach_ppohand_network/ppo_hand.pt --render --episodes 20 --seed 10000
-# 小批次兼容入口，与当前原版的更新方式一致。
-uv run --no-sync python tests/train_hand_minibatch.py --timesteps 300000 --batch-size 64 --seed 0
-uv run --no-sync python tests/train_hand_minibatch.py --evaluate runs/reach_ppohand_minibatch/ppo_hand.pt --render --episodes 20 --seed 10000
-```
-
-两版均在训练结束后保存 `ppo_hand.pt` 并自动评估 10 回合，输出文件名和日志字段与原版一致。新检查点记录版本，评估时自动创建对应网络；原版旧检查点仍可加载。比较各版时使用相同训练预算和评估 `--seed`，以便目标点一致。
-
-四版（原版手写、网络修改版、小批次修改版、SB3）训练结束后的自动评估统一使用 `训练 seed + 20000` 作为首回合种子，之后每回合递增 1，共评估 10 回合。该规则由 `src/rlinit/algorithmhand/evaluation.py` 统一定义；终端打印实际种子，`config.json` 的 `final_eval_seed` 字段记录该值。例如训练 `--seed 0` 时，自动评估的目标种子为 `20000` 到 `20009`。手动评估仍直接使用命令行 `--seed`。
+手写 PPO 与 SB3 的训练结束后自动评估统一使用 `训练 seed + 20000` 作为首回合种子，之后每回合递增 1，默认评估 10 回合。该规则由 `src/rlinit/algorithmhand/evaluation.py` 统一定义；终端打印实际种子，`config.json` 的 `final_eval_seed` 字段记录该值。例如训练 `--seed 0` 时，自动评估的目标种子为 `20000` 到 `20009`。手动评估仍直接使用命令行 `--seed`。
 
 ### 两台设备：CPU / RTX 3060
 
@@ -227,6 +211,8 @@ gama:自定义
 
 实现位于 `src/rlinit/algorithmhand/door_env.py`，训练入口为 `tests/trainp2_hand.py`，使用原版 `PPOhand.PPO.from_env(env)`。第一版在内存中移除三个底盘关节及执行器，真正固定底盘，保留七个机械臂、八个夹爪机构关节和两个门关节，共 17 个位置/速度坐标、8 个动作输入；源 XML 不变。
 
+当前默认 Actor 为 `64→128→128→8`、Critic 为 `64→128→128→1`，两个隐藏层均使用 ReLU。`--hidden-dim` 同时设置两层的宽度。新检查点记录 `hidden_depth=2`；已有单层检查点在评估时按原结构恢复，新增的隐藏层需要重新训练。
+
 | 要素 | 当前实现 |
 | --- | --- |
 | S / 观测 | 64 维：全部 `qpos/qvel`（34）、累计臂目标（7）、上一动作（8）、首次抓取/压把手标记（2）、成功保持计时和回合时间比例（2）、相对抓取位置（3）、相对姿态矩阵前两列（6）、左右指垫法向接触力（2）。位置/速度和力按固定尺度缩放。 |
@@ -246,9 +232,34 @@ uv run --no-sync python tests/trainp2_hand.py --timesteps 4096 --n-steps 512 --b
 uv run --no-sync python tests/trainp2_hand.py --timesteps 300000 --batch-size 64 --gamma 0.999
 # 实时观察训练。
 uv run --no-sync python tests/trainp2_hand.py --timesteps 300000 --render
+# 双层 128 的独立实验目录，保留此前单层模型用于比较。
+uv run --no-sync python tests/trainp2_hand.py --timesteps 300000 --hidden-dim 128 --gamma 0.999 --output-dir runs/door_ppohand_128x128
 # 评估：环境配置随检查点恢复，--seed 指定首个评估种子。
 uv run --no-sync python tests/trainp2_hand.py --evaluate runs/door_ppohand/ppo_hand.pt --episodes 10 --seed 20000 --render
 ```
 
 默认输出到 `runs/door_ppohand/`：`ppo_hand.pt`、`config.json`、`episodes.csv`、`updates.csv` 和 `metrics.json`。每次 PPO 更新后保存检查点；训练结束后按 `训练 seed + 20000` 自动独立评估，默认 10 回合。指标包含成功率、曾抓住把手比例、曾压下把手比例、最终/最大门角度及失败原因。检查点保存批大小、gamma 和完整环境配置，并与到达任务检查点区分格式。当前未加入示范学习或自动课程，完成物理脚本验证并不意味着 PPO 已经学会这一连续动作序列。
+
+5. 使用 Stable-Baselines3 PPO 基准训练
+
+`tests/trainp2_sb3.py` 复用相同 `DoorEnv`，通过 `stable_baselines3.PPO("MlpPolicy", env)` 训练，不指定 `policy_kwargs`。网络、激活函数、初始化、优化器和算法参数全部采用安装的 SB3 默认值；当前为 Actor/Critic 各两层 64、Tanh、正交初始化、Adam，学习率 `3e-4`、rollout 2048、小批次 64、更新 10 轮、`gamma=0.99`、GAE lambda 0.95。环境奖励势函数也同步使用实际 PPO gamma。网络和动作分布等与手写版存在差异，这里用于成熟实现的基准实验。
+
+```powershell
+# 使用 SB3 默认算法与网络设置训练。
+uv run --no-sync python tests/trainp2_sb3.py --timesteps 300000
+# 实时观察训练。
+uv run --no-sync python tests/trainp2_sb3.py --timesteps 300000 --render
+# 仅覆盖 gamma 为 0.999，网络和其他算法参数仍采用 SB3 默认值。
+uv run --no-sync python tests/trainp2_sb3.py --timesteps 300000 --gamma 0.999 --output-dir runs/door_sb3_gamma999
+# 短跑：保留所有算法默认值，仅缩短交互预算及评估回合数。
+uv run --no-sync python tests/trainp2_sb3.py --timesteps 2048 --episodes 1 --output-dir runs/door_sb3_smoke
+# 评估最终模型；从 zip 恢复当时的完整环境配置。
+uv run --no-sync python tests/trainp2_sb3.py --evaluate runs/door_sb3/ppo_door.zip --episodes 10 --seed 20000 --render
+# 评估周期评估中平均回报最高的模型。
+uv run --no-sync python tests/trainp2_sb3.py --evaluate runs/door_sb3/best/best_model.zip --episodes 10 --seed 20000 --render
+```
+
+默认输出到 `runs/door_sb3/`：最终模型 `ppo_door.zip`、`config.json`、`train.monitor.csv`、`logs/progress.csv`、`eval/evaluations.npz`、`best/best_model.zip` 和最终独立评估 `metrics.json`。周期评估默认每 10000 步进行 10 回合，不打开额外窗口；最佳模型按平均回报选择。训练日志含 SB3 的 KL、clip fraction、entropy loss、explained variance 等指标。训练结束后的评估首种子同样为 `训练 seed + 20000`。SB3 会将训练步数向上取整到完整 rollout，配置文件记录请求步数和实际步数。
+
+`--n-steps`、`--batch-size`、`--epochs`、`--gamma` 只有显式传入时才覆盖 SB3 默认值。`--max-steps`、`--action-scale` 和 `--initial-noise` 是任务环境参数。评估时这些训练参数从模型恢复；只需指定检查点、种子、回合数和是否渲染。`.zip` 与手写版 `.pt` 使用不同的加载入口。
 

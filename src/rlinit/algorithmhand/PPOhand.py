@@ -13,15 +13,19 @@ from .device import resolve_device
 
 
 class PolicyNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim, action_dim):
+    def __init__(self, state_dim, hidden_dim, action_dim, hidden_depth=2):
         super().__init__()
+        self.hidden_depth = hidden_depth
         self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, action_dim)
+        self.fc2 = torch.nn.Linear(hidden_dim, hidden_dim if hidden_depth == 2 else action_dim)
+        if hidden_depth == 2:
+            self.fc3 = torch.nn.Linear(hidden_dim, action_dim)
         self.log_std = torch.nn.Parameter(torch.full((action_dim,), -0.5))
 
     def forward(self, x):
         """返回高斯分布的均值和标准差，动作随后通过 tanh 限幅。"""
-        mean = self.fc2(F.relu(self.fc1(x)))
+        hidden = F.relu(self.fc1(x))
+        mean = self.fc3(F.relu(self.fc2(hidden))) if self.hidden_depth == 2 else self.fc2(hidden)
         std = self.log_std.clamp(-5, 2).exp().expand_as(mean)
         return mean, std
 
@@ -35,13 +39,17 @@ class PolicyNet(torch.nn.Module):
 
 
 class ValueNet(torch.nn.Module):
-    def __init__(self, state_dim, hidden_dim):
+    def __init__(self, state_dim, hidden_dim, hidden_depth=2):
         super().__init__()
+        self.hidden_depth = hidden_depth
         self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc2 = torch.nn.Linear(hidden_dim, 1)
+        self.fc2 = torch.nn.Linear(hidden_dim, hidden_dim if hidden_depth == 2 else 1)
+        if hidden_depth == 2:
+            self.fc3 = torch.nn.Linear(hidden_dim, 1)
 
     def forward(self, x):
-        return self.fc2(F.relu(self.fc1(x)))
+        hidden = F.relu(self.fc1(x))
+        return self.fc3(F.relu(self.fc2(hidden))) if self.hidden_depth == 2 else self.fc2(hidden)
 
 
 def compute_gae(rewards, values, next_values, terminated, truncated, gamma, lmbda):
@@ -60,7 +68,8 @@ class PPO:
     """采用 tanh 高斯策略和截断目标的 PPO。
 
     保留原构造参数顺序，默认适配当前固定底盘到达任务。
-    推荐通过 from_env(env) 自动读取维度。
+    推荐通过 from_env(env) 自动读取维度。默认两层 128 ReLU；
+    hidden_dim 同时指定两层宽度，hidden_depth=1 用于恢复旧单层检查点。
     """
 
     variant = "original"
@@ -70,17 +79,20 @@ class PPO:
 
     def __init__(self, state_dim=20, hidden_dim=128, action_dim=7,
                  actor_lr=3e-4, critic_lr=1e-3, lmbda=0.95,
-                 epochs=10, eps=0.2, gamma=0.99, device="auto", batch_size=64):
+                 epochs=10, eps=0.2, gamma=0.99, device="auto", batch_size=64, hidden_depth=2):
         if min(state_dim, hidden_dim, action_dim, epochs) < 1:
             raise ValueError("网络维度和 epochs 必须为正整数")
         if not (0 <= gamma <= 1 and 0 <= lmbda <= 1 and 0 < eps < 1):
             raise ValueError("gamma/lmbda 应在 [0, 1]，eps 应在 (0, 1)")
         if not isinstance(batch_size, int) or batch_size < 2:
             raise ValueError("batch_size 必须是至少为 2 的整数")
+        if hidden_depth not in (1, 2):
+            raise ValueError("hidden_depth 必须为 1 或 2")
         self.device = resolve_device(device)
         self.state_dim, self.action_dim = state_dim, action_dim
-        self.actor = self.policy_net_class(state_dim, hidden_dim, action_dim).to(self.device)
-        self.critic = self.value_net_class(state_dim, hidden_dim).to(self.device)
+        self.hidden_depth = hidden_depth
+        self.actor = self.policy_net_class(state_dim, hidden_dim, action_dim, hidden_depth=hidden_depth).to(self.device)
+        self.critic = self.value_net_class(state_dim, hidden_dim, hidden_depth=hidden_depth).to(self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         self.gamma, self.lmbda, self.epochs, self.eps = gamma, lmbda, epochs, eps

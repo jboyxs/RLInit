@@ -109,7 +109,26 @@ class DoorEnvTests(unittest.TestCase):
             loaded, restored_env = load_agent(path, device="cpu")
             self.addCleanup(restored_env.close)
             self.assertEqual(restored_env.config, env.config)
+            self.assertEqual(loaded.hidden_depth, 2)
             np.testing.assert_array_equal(agent.take_action(state, deterministic=True),
+                                          loaded.take_action(state, deterministic=True))
+
+    def test_old_single_layer_door_checkpoint_remains_evaluable(self):
+        env = DoorEnv()
+        self.addCleanup(env.close)
+        state, _ = env.reset(seed=0)
+        config = dict(state_dim=64, action_dim=8, hidden_dim=16, hidden_depth=1, device="cpu")
+        original = PPO(**config)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "old_door.pt"
+            save_agent(original, env, path, config, 123)
+            checkpoint = torch.load(path, weights_only=True)
+            del checkpoint["agent_config"]["hidden_depth"]
+            torch.save(checkpoint, path)
+            loaded, restored_env = load_agent(path, device="cpu")
+            self.addCleanup(restored_env.close)
+            self.assertEqual(loaded.hidden_depth, 1)
+            np.testing.assert_array_equal(original.take_action(state, deterministic=True),
                                           loaded.take_action(state, deterministic=True))
 
 

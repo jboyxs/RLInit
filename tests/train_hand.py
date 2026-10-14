@@ -13,8 +13,6 @@ import numpy as np
 import torch
 
 from rlinit.algorithmhand.PPOhand import PPO
-from rlinit.algorithmhand.PPOhand_network import PPO as NetworkPPO
-from rlinit.algorithmhand.PPOhand_minibatch import PPO as MinibatchPPO
 from rlinit.algorithmhand.evaluation import final_eval_seed
 from rlinit.algorithmhand.reach_env import DEFAULT_MODEL, ReachEnv
 
@@ -23,14 +21,13 @@ ROLLOUT_KEYS = (
     "states", "actions", "rewards", "next_states",
     "terminated", "truncated", "log_probs",
 )
-AGENT_CLASSES = {agent.variant: agent for agent in (PPO, NetworkPPO, MinibatchPPO)}
 
 
 def save_agent(agent, path, config, timesteps):
     """保存网络、优化器和构造参数；格式独立于 SB3 的 .zip。"""
     torch.save({
         "format": "rlinit-ppohand-v1", "variant": agent.variant,
-        "config": config, "timesteps": timesteps,
+        "config": {**config, "hidden_depth": agent.hidden_depth}, "timesteps": timesteps,
         "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
         "actor_optimizer": agent.actor_optimizer.state_dict(),
         "critic_optimizer": agent.critic_optimizer.state_dict(),
@@ -42,14 +39,15 @@ def load_agent(path, env, device="auto"):
     if checkpoint.get("format") != "rlinit-ppohand-v1":
         raise ValueError("需要此脚本生成的 PPOhand .pt 模型")
     config = dict(checkpoint["config"])
+    config.setdefault("hidden_depth", 2 if "fc3.weight" in checkpoint["actor"] else 1)
     config["device"] = device
     if (config["state_dim"] != env.observation_space.shape[0]
             or config["action_dim"] != env.action_space.shape[0]):
         raise ValueError("模型与环境的观测/动作维度不匹配")
-    variant = checkpoint.get("variant", "original")
-    if variant not in AGENT_CLASSES:
-        raise ValueError(f"未知 PPOhand 模型版本：{variant}")
-    agent = AGENT_CLASSES[variant](**config)
+    # Old minibatch checkpoints use the same ReLU architecture as the main PPO.
+    if checkpoint.get("variant", "original") not in ("original", "minibatch"):
+        raise ValueError("此检查点不属于主版手写 PPO，请使用主版模型或 SB3 基准入口")
+    agent = PPO(**config)
     agent.actor.load_state_dict(checkpoint["actor"])
     agent.critic.load_state_dict(checkpoint["critic"])
     agent.actor.eval()
@@ -87,7 +85,7 @@ def evaluate(checkpoint, episodes=20, seed=10_000, model_path=DEFAULT_MODEL, ren
 
 def train(total_timesteps=300_000, output_dir="runs/reach_ppohand", seed=0,
           model_path=DEFAULT_MODEL, n_steps=2048, epochs=10, hidden_dim=128,
-          render=False, device="auto", agent_class=PPO, agent_kwargs=None):
+          render=False, device="auto", batch_size=64):
     if total_timesteps < 1 or n_steps < 2:
         raise ValueError("timesteps 须为正数，n_steps 须至少为 2")
     torch.manual_seed(seed)
@@ -98,17 +96,16 @@ def train(total_timesteps=300_000, output_dir="runs/reach_ppohand", seed=0,
     env = ReachEnv(model_path, render_mode="human" if render else None)
     try:
         # 在这里调用 from_env：根据当前模型创建 20 输入、7 输出的策略。
-        agent = agent_class.from_env(env, hidden_dim=hidden_dim, epochs=epochs,
-                                     device=device, **(agent_kwargs or {}))
+        agent = PPO.from_env(env, hidden_dim=hidden_dim, epochs=epochs,
+                             device=device, batch_size=batch_size)
         print(f"Using device: {agent.device}", flush=True)
         config = {
             "state_dim": agent.state_dim, "action_dim": agent.action_dim,
-            "hidden_dim": hidden_dim, "epochs": epochs, "actor_lr": 3e-4,
+            "hidden_dim": hidden_dim, "hidden_depth": agent.hidden_depth, "epochs": epochs, "actor_lr": 3e-4,
             "critic_lr": 1e-3, "gamma": agent.gamma, "lmbda": agent.lmbda,
             "eps": agent.eps, "device": str(agent.device),
         }
-        if agent.supports_minibatches:
-            config["batch_size"] = agent.batch_size
+        config["batch_size"] = agent.batch_size
         run_config = {
             "variant": agent.variant, "agent": config,
             "model_path": str(Path(model_path).resolve()),
@@ -165,19 +162,17 @@ def train(total_timesteps=300_000, output_dir="runs/reach_ppohand", seed=0,
     return checkpoint
 
 
-def main(agent_class=PPO, default_output_dir="runs/reach_ppohand",
-         default_hidden_dim=128, description=None):
-    parser = argparse.ArgumentParser(description=description or __doc__)
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--timesteps", type=int, default=300_000)
-    parser.add_argument("--output-dir", type=Path, default=Path(default_output_dir))
+    parser.add_argument("--output-dir", type=Path, default=Path("runs/reach_ppohand"))
     parser.add_argument("--seed", type=int, default=0,
                         help="训练种子；结束后自动评估使用 seed + 20000。手动评估时为首回合种子")
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL)
     parser.add_argument("--n-steps", type=int, default=2048, help="每次更新前收集的环境交互步数")
-    if agent_class.supports_minibatches:
-        parser.add_argument("--batch-size", type=int, default=64, help="每个小批次的样本数")
+    parser.add_argument("--batch-size", type=int, default=64, help="每个小批次的样本数")
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--hidden-dim", type=int, default=default_hidden_dim)
+    parser.add_argument("--hidden-dim", type=int, default=128)
     parser.add_argument("--evaluate", type=Path, help="加载 PPOhand .pt 模型评估")
     parser.add_argument("--episodes", type=int, default=20)
     parser.add_argument("--render", action="store_true", help="显示训练或评估窗口")
@@ -189,8 +184,7 @@ def main(agent_class=PPO, default_output_dir="runs/reach_ppohand",
     else:
         train(args.timesteps, args.output_dir, args.seed, args.model,
               args.n_steps, args.epochs, args.hidden_dim, args.render, device=args.device,
-              agent_class=agent_class,
-              agent_kwargs={"batch_size": args.batch_size} if agent_class.supports_minibatches else None)
+              batch_size=args.batch_size)
 
 
 if __name__ == "__main__":

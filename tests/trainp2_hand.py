@@ -23,7 +23,7 @@ FORMAT = "rlinit-door-ppohand-v1"
 
 def save_agent(agent, env, path, agent_config, timesteps):
     torch.save({
-        "format": FORMAT, "agent_config": agent_config, "environment": env.specification(),
+        "format": FORMAT, "agent_config": {**agent_config, "hidden_depth": agent.hidden_depth}, "environment": env.specification(),
         "timesteps": timesteps, "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
         "actor_optimizer": agent.actor_optimizer.state_dict(),
         "critic_optimizer": agent.critic_optimizer.state_dict(),
@@ -39,6 +39,7 @@ def load_agent(path, *, device="auto", render=False, model_path=None):
                   config=DoorConfig(**specification["config"]), render_mode="human" if render else None)
     try:
         config = dict(checkpoint["agent_config"])
+        config.setdefault("hidden_depth", 2 if "fc3.weight" in checkpoint["actor"] else 1)
         if config["state_dim"] != env.observation_space.shape[0] or config["action_dim"] != 8:
             raise ValueError("Checkpoint observation/action dimensions do not match the environment")
         config["device"] = device
@@ -109,6 +110,7 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_ppohand", seed=0,
                              device=device, batch_size=batch_size)
         agent_config = {
             "state_dim": agent.state_dim, "action_dim": agent.action_dim, "hidden_dim": hidden_dim,
+            "hidden_depth": agent.hidden_depth,
             "epochs": epochs, "actor_lr": 3e-4, "critic_lr": 1e-3,
             "gamma": agent.gamma, "lmbda": agent.lmbda, "eps": agent.eps, "device": str(agent.device),
             "batch_size": agent.batch_size,
