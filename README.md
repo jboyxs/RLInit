@@ -337,6 +337,17 @@ uv run --no-sync python -m unittest discover -s tests -p test_door_sac_reference
 
 默认输出到 `runs/door_sac_reference/`，模型、日志、配置和评估文件沿用 SAC 的文件组织方式。模型中保存独立任务标识、奖励模式与缩放系数，最终模型和最佳模型都按此配置恢复评估；原 SAC 入口仍保留其原有奖励。短跑和确定性物理轨迹检查只验证实现，训练效果以独立评估的成功率为准。
 
+`tests/trainp2_sac_reference_large.py` 是独立的大网络入口：Actor 和两个 Q 网络的隐藏层由 `[256, 256]` 扩大到 `[1024, 1024]`，仍使用 ReLU。奖励、环境、SAC 超参数、并行采样和评估方式与参考奖励版相同，默认结果写入 `runs/door_sac_reference_large/`。配置和检查点保存实际网络结构，评估自动恢复。
+
+```powershell
+# 大网络训练；单环境时可加 --render 实时查看。
+uv run --no-sync python tests/trainp2_sac_reference_large.py --timesteps 300000
+# 4 个环境并行采样。
+uv run --no-sync python tests/trainp2_sac_reference_large.py --n-envs 4 --timesteps 300000
+# 渲染评估大网络模型。
+uv run --no-sync python tests/trainp2_sac_reference_large.py --evaluate runs/door_sac_reference_large/sac_door.zip --episodes 10 --seed 20000 --render
+```
+
 6. Curriculum Learning：独立课程环境与训练入口
 
 课程环境为 `src/rlinit/algorithmhand/door_curriculum_env.py`，训练脚本为 `tests/train_curriculum.py`。复用原环境的机器人、接触、动作映射和失败检查，使用独立的阶段目标、密集奖励和初始化分布；原 `door_env.py` 及两个原训练入口保持独立。

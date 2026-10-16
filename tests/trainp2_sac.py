@@ -156,7 +156,7 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
           model_path=DEFAULT_MODEL, env_config=None, learning_rate=None, buffer_size=None,
           learning_starts=None, batch_size=None, train_freq=None, gradient_steps=None,
           gamma=None, tau=None, ent_coef=None, eval_freq=10_000, eval_episodes=10,
-          render=False, device="auto", n_envs=1, reference_reward=None):
+          render=False, device="auto", n_envs=1, reference_reward=None, policy_kwargs=None):
     if min(total_timesteps, eval_freq, eval_episodes) < 1:
         raise ValueError("timesteps/eval_freq/eval_episodes must be positive")
     if not isinstance(n_envs, int) or n_envs < 1:
@@ -199,7 +199,8 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
                 partial(make_worker, str(Path(model_path).resolve()), task_config, None, reference_reward)
             ], start_method="spawn")
             eval_env.seed(seed + 10_000)
-        agent = SAC("MlpPolicy", env, seed=seed, device=selected_device, verbose=1, **overrides)
+        agent = SAC("MlpPolicy", env, seed=seed, device=selected_device, verbose=1,
+                    policy_kwargs=policy_kwargs, **overrides)
         # These attributes are embedded in final and best checkpoints, allowing
         # evaluation without config.json and with a model path override on a new host.
         agent.door_task_format = FORMAT
