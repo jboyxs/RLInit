@@ -7,6 +7,7 @@ import unittest
 
 import mujoco
 import numpy as np
+from stable_baselines3 import PPO as SB3PPO
 
 from rlinit.algorithmhand.door_curriculum_env import DoorCurriculumEnv, STAGES, _ResetStateBuilder
 from rlinit.algorithmhand.door_env import DoorConfig
@@ -128,7 +129,13 @@ class CurriculumTests(unittest.TestCase):
                          config=DoorConfig(max_steps=16, initial_noise=0))
             config = json.loads((Path(directory) / "config.json").read_text())
             self.assertEqual(config["environment"]["observation_dim"], 70)
-            self.assertEqual(config["agent"]["net_arch"], {"pi": [64, 64], "vf": [64, 64]})
+            self.assertEqual(config["agent"]["net_arch"], {"pi": [256, 256, 256], "vf": [256, 256, 256]})
+            restored = SB3PPO.load(path, device="cpu")
+            self.assertEqual(restored.policy.net_arch, config["agent"]["net_arch"])
+            for network in (restored.policy.mlp_extractor.policy_net, restored.policy.mlp_extractor.value_net):
+                self.assertEqual(network[0].weight.shape, (256, 70))
+                self.assertEqual(network[2].weight.shape, (256, 256))
+                self.assertEqual(network[4].weight.shape, (256, 256))
             self.assertFalse(config["progress"]["completed"])
             current = evaluate(path, episodes=1, seed=123, device="cpu")
             full = evaluate(path, episodes=1, seed=123, device="cpu", full_task=True)

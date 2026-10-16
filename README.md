@@ -263,6 +263,52 @@ uv run --no-sync python tests/trainp2_sb3.py --evaluate runs/door_sb3/best/best_
 
 `--n-steps`、`--batch-size`、`--epochs`、`--gamma` 只有显式传入时才覆盖 SB3 默认值。`--max-steps`、`--action-scale` 和 `--initial-noise` 是任务环境参数。评估时这些训练参数从模型恢复；只需指定检查点、种子、回合数和是否渲染。`.zip` 与手写版 `.pt` 使用不同的加载入口。
 
+### 使用 SB3 SAC 训练开门任务
+
+`tests/trainp2_sac.py` 复用原版 `DoorEnv`（64 维观测、8 维连续动作），从 home 姿态训练完整开门任务。采用 SB3 默认 SAC：Actor 和两个 Q 网络各为两层 256 ReLU，学习率 `3e-4`、经验池容量 100 万、随机探索 100 步、小批次 256、每采样一步更新一次、`tau=0.005`、`gamma=0.99`、自动学习熵系数。环境奖励势函数同步采用实际 SAC gamma；可用 `--gamma 0.999` 调整。
+
+```powershell
+# 正式训练；现有依赖已包含 SAC，无需增加安装包。
+uv run --no-sync python tests/trainp2_sac.py --timesteps 300000
+# 训练时实时观察，CPU / CUDA 自动选择；也可指定 --device cpu 或 --device cuda。
+uv run --no-sync python tests/trainp2_sac.py --timesteps 300000 --render
+# 短跑验证：降低探索步数，确保包含 SAC 梯度更新和周期评估。
+uv run --no-sync python tests/trainp2_sac.py --timesteps 128 --learning-starts 16 --buffer-size 256 --batch-size 16 --max-steps 8 --eval-freq 64 --episodes 1 --device cpu --output-dir runs/door_sac_smoke
+# 评估最终模型；可替换为 runs/door_sac/best/best_model.zip。
+uv run --no-sync python tests/trainp2_sac.py --evaluate runs/door_sac/sac_door.zip --episodes 10 --seed 20000 --render
+# 自动检查梯度更新、损失有限性、检查点恢复及确定性评估。
+uv run --no-sync python -m unittest discover -s tests -p test_door_sac.py -v
+```
+
+默认输出到 `runs/door_sac/`：最终模型 `sac_door.zip`、配置 `config.json`、回合日志 `train.monitor.csv`、损失日志 `logs/progress.csv` 和最终评估 `metrics.json`。每 10000 步独立评估 10 回合，保存 `eval/evaluations.npz` 和按平均回报选择的 `best/best_model.zip`；预算不足一个评估周期时不会生成最佳模型。训练结束后的评估首种子为 `训练 seed + 20000`，记录成功率、抓取率、压把手比例及门角度。短跑仅验证流程，不代表学会开门。
+
+`--learning-rate`、`--buffer-size`、`--learning-starts`、`--batch-size`、`--train-freq`、`--gradient-steps`、`--gamma`、`--tau` 和 `--ent-coef` 显式传入时覆盖 SB3 默认值；`--ent-coef` 支持 `auto`、`auto_0.1` 或固定非负数。`--train-freq` 按环境步计，`--gradient-steps -1` 表示每收集一步做一次更新，实际步数可能向上取整到采样周期。`--max-steps`、`--action-scale`、`--initial-noise` 配置训练环境。评估从 `.zip` 内恢复环境参数，不依赖旁边的 JSON；跨机器可用 `--model` 指定场景 XML。模型用于推理与评估，未另存经验池；SAC 模型需通过本入口加载。
+
+SAC 单环境版和并行版默认每回合最多执行 **1000 步**（50 Hz 下为 20 秒仿真时间），可用 `--max-steps` 覆盖。命令行与未显式传入环境配置的 `train()` 使用相同默认值；评估已有检查点时仍恢复其中保存的回合上限。
+
+### 使用多个进程并行采样 SAC
+
+`tests/trainp2_sac_parallel.py` 使用 `SubprocVecEnv` 为每个环境启动独立进程，默认 `--n-envs 4`。多个 MuJoCo 环境并行采样，共用主进程的一套 SAC 网络和经验池；网络结构与单环境版相同。Windows 使用 `spawn`，脚本带主入口保护，可直接运行；其他 Python 脚本调用 `train()` 时也应放在 `if __name__ == "__main__":` 内。
+
+```powershell
+# 4 个环境进程并行训练；总采样预算为 30 万条，而非每个环境 30 万条。
+uv run --no-sync python tests/trainp2_sac_parallel.py --n-envs 4 --timesteps 300000
+# 在显卡机器上用 CUDA 更新网络，MuJoCo 仍在 CPU 子进程运行。
+uv run --no-sync python tests/trainp2_sac_parallel.py --n-envs 4 --device cuda --timesteps 300000
+# 多进程短跑，包含实际梯度更新、周期评估和保存。
+uv run --no-sync python tests/trainp2_sac_parallel.py --n-envs 2 --timesteps 128 --learning-starts 16 --buffer-size 256 --batch-size 16 --max-steps 8 --eval-freq 64 --episodes 1 --device cpu --output-dir runs/door_sac_parallel_smoke
+# 并行训练不打开查看器；训练完成后单独渲染评估。
+uv run --no-sync python tests/trainp2_sac_parallel.py --evaluate runs/door_sac_parallel/sac_door.zip --episodes 10 --seed 20000 --render
+# 同时验证单环境 SAC 与真实子进程并行训练。
+uv run --no-sync python -m unittest discover -s tests -p "test_door_sac*.py" -v
+```
+
+默认 `--gradient-steps -1`，热身结束后每采集一条经验进行一次梯度更新，符合 [SB3 对多环境 off-policy 训练的说明](https://stable-baselines3.readthedocs.io/en/master/guide/examples.html#multiprocessing-with-off-policy-algorithms)。例如 4 个环境、`--train-freq 1` 时，每轮采集 4 条经验并更新 4 次；显式设为 `--gradient-steps 1` 时，每轮只更新一次，减少计算量但也改变训练与采样的比例，需比较最终成功率。`--train-freq` 在此按向量环境步计，总步数可能向上取整到 `n_envs × train_freq` 的倍数。
+
+`--torch-threads` 控制主进程的 PyTorch CPU 计算线程数，默认 1；各环境进程的 PyTorch 线程数固定为 1，以减少 CPU 争用。多进程训练时，评估另用一个独立环境进程，训练和周期评估交替执行。可以先比较 2 / 4 个环境；更多进程不保证更快，网络更新和进程通信也会耗时。`config.json` 记录训练耗时 `training_seconds` 与总经验吞吐量 `transitions_per_second`，不含进程启动、最终评估和最终模型保存，包含训练中的周期评估及最佳模型保存；比较速度时请保持总步数、更新比例、批大小、线程数及评估设置一致。
+
+默认输出目录是 `runs/door_sac_parallel/`，每个采样环境单独写入 `workers/<编号>.monitor.csv`，其余模型与指标文件与单环境版一致。周期评估按总采样条数计，不能整除环境数时向上取整，并记录 `effective_eval_freq`；每个环境首种子为 `seed + 编号`。两种入口生成的 SAC 检查点可互相加载评估。
+
 6. Curriculum Learning：独立课程环境与训练入口
 
 课程环境为 `src/rlinit/algorithmhand/door_curriculum_env.py`，训练脚本为 `tests/train_curriculum.py`。复用原环境的机器人、接触、动作映射和失败检查，使用独立的阶段目标、密集奖励和初始化分布；原 `door_env.py` 及两个原训练入口保持独立。
@@ -279,11 +325,13 @@ uv run --no-sync python tests/trainp2_sb3.py --evaluate runs/door_sb3/best/best_
 
 每步奖励采用当前目标的非正密集成本：`-5×距离`、`-0.25×姿态误差`、未抓住 `-0.5`、未完成压把手/开门的归一化误差；保留动作、平滑性、不良碰撞与时间惩罚。子任务成功一次奖励 +20，完整任务成功 +50，失败 -50。后续阶段松开把手也不会移除压把手和开门成本。密集成本用于鼓励尽快完成当前目标，评估同时记录失败原因与回合长度，不能仅凭平均回报判断是否学会。
 
-SB3 网络、初始化及优化器仍使用默认设置（双层 64 Tanh），默认 gamma=0.99。每次独立评估默认 10 回合，连续两次成功率至少 80% 才升级；步数达到上限不会强制升级。两个渐进阶段的 home 概率每次增加 0.25。只有 `full` 且全部从 home 起步的阶段也达标，才标记课程完成。训练结束始终另行从 home 评估完整任务，容易起点的子任务成功不计作完整任务成功。
+SB3 课程训练的 Actor/Critic 隐藏层均扩大到 `[256, 256, 256]`，`--hidden-dim` 设置每层宽度，`--hidden-depth` 设置隐藏层数；激活函数仍为 Tanh，初始化、优化器和算法参数沿用 SB3 默认设置，默认 gamma=0.99。启动时打印实际网络结构，配置与检查点记录该结构，评估按检查点恢复。此前双层 64 的检查点仍可评估；新网络需要重新启动训练，可用单独输出目录保存。每次独立评估默认 10 回合，连续两次成功率至少 80% 才升级；步数达到上限不会强制升级。两个渐进阶段的 home 概率每次增加 0.25。只有 `full` 且全部从 home 起步的阶段也达标，才标记课程完成。训练结束始终另行从 home 评估完整任务，容易起点的子任务成功不计作完整任务成功。
 
 ```powershell
 # 课程训练：默认总预算 100 万步，评估后自动升级。
 uv run --no-sync python tests/train_curriculum.py --timesteps 1000000
+# 三层 256 的单独实验目录。
+uv run --no-sync python tests/train_curriculum.py --timesteps 1000000 --hidden-dim 256 --hidden-depth 3 --device cpu --output-dir runs/door_curriculum_256x3
 # 实时观察当前课程阶段。
 uv run --no-sync python tests/train_curriculum.py --timesteps 1000000 --render
 # 查看检查点对应的当前课程阶段。
@@ -321,3 +369,4 @@ uv run --no-sync python -m unittest discover -s tests -p test_door_curriculum_ha
 
 默认输出到 `runs/door_curriculum_hand/`：`ppo_curriculum_hand.pt`、各阶段最佳模型 `best/*.pt`、`episodes.csv`、`updates.csv`、`curriculum.csv`、阶段评估 JSON、`config.json` 和从 home 评估完整任务的 `metrics.json`。检查点保存网络、优化器、环境、课程配置与升级进度；当前入口支持训练和评估。手写课程 `.pt`、SB3 课程 `.zip` 和原 64 维任务 `.pt` 分别用各自入口加载。
 
+8. 改用off policy的方法

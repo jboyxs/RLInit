@@ -46,12 +46,14 @@ def train(*, total_timesteps=1_000_000, output_dir="runs/door_curriculum", seed=
           model_path=DEFAULT_MODEL, config=None, curriculum=None,
           start_stage="reach", home_probability=0.0, eval_freq=10_000,
           eval_episodes=10, threshold=0.8, patience=2, home_step=0.25,
-          n_steps=None, batch_size=None, epochs=None, gamma=None,
+          n_steps=None, batch_size=None, epochs=None, gamma=None, hidden_dim=256, hidden_depth=3,
           render=False, device="auto"):
     if min(total_timesteps, eval_freq, eval_episodes, patience) < 1:
         raise ValueError("Budgets, evaluation count and patience must be positive")
     if not 0 < threshold <= 1 or not 0 < home_step <= 1:
         raise ValueError("threshold and home_step must be in (0, 1]")
+    if any(not isinstance(value, int) or value < 1 for value in (hidden_dim, hidden_depth)):
+        raise ValueError("hidden_dim and hidden_depth must be positive integers")
     overrides = {k: v for k, v in {"n_steps": n_steps, "batch_size": batch_size,
                                   "n_epochs": epochs, "gamma": gamma}.items() if v is not None}
     actual_gamma = gamma if gamma is not None else inspect.signature(PPO).parameters["gamma"].default
@@ -83,7 +85,10 @@ def train(*, total_timesteps=1_000_000, output_dir="runs/door_curriculum", seed=
     checkpoint = output / "ppo_curriculum.zip"
     try:
         env = make_env()
-        agent = PPO("MlpPolicy", env, seed=seed, device=selected_device, verbose=1, **overrides)
+        net_arch = {"pi": [hidden_dim] * hidden_depth, "vf": [hidden_dim] * hidden_depth}
+        agent = PPO("MlpPolicy", env, seed=seed, device=selected_device, verbose=1,
+                    policy_kwargs={"net_arch": net_arch}, **overrides)
+        print(f"SB3 network: {agent.policy.net_arch}, activation={agent.policy.activation_fn.__name__}", flush=True)
         logger = configure(str(output / "logs"), ["stdout", "csv"])
         agent.set_logger(logger)
         agent.curriculum_format = FORMAT
@@ -172,6 +177,8 @@ def main():
     parser.add_argument("--n-steps", type=int)
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--epochs", type=int)
+    parser.add_argument("--hidden-dim", type=int, default=256, help="Width of every actor/critic hidden layer.")
+    parser.add_argument("--hidden-depth", type=int, default=3, help="Number of actor/critic hidden layers.")
     parser.add_argument("--gamma", type=float)
     parser.add_argument("--evaluate", type=Path)
     parser.add_argument("--full-task", action="store_true", help="Evaluate complete opening from home.")
@@ -190,6 +197,7 @@ def main():
               eval_freq=args.eval_freq, eval_episodes=args.episodes, threshold=args.success_threshold,
               patience=args.patience, home_step=args.home_step, n_steps=args.n_steps,
               batch_size=args.batch_size, epochs=args.epochs, gamma=args.gamma,
+              hidden_dim=args.hidden_dim, hidden_depth=args.hidden_depth,
               render=args.render, device=args.device)
 
 
