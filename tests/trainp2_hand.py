@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rlinit.algorithmhand.PPOhand import PPO
+from rlinit.algorithmhand.PPOhand import PPO, checkpoint_hidden_depth
 from rlinit.algorithmhand.door_env import DEFAULT_MODEL, DoorConfig, DoorEnv
 from rlinit.algorithmhand.evaluation import final_eval_seed
 
@@ -39,7 +39,7 @@ def load_agent(path, *, device="auto", render=False, model_path=None):
                   config=DoorConfig(**specification["config"]), render_mode="human" if render else None)
     try:
         config = dict(checkpoint["agent_config"])
-        config.setdefault("hidden_depth", 2 if "fc3.weight" in checkpoint["actor"] else 1)
+        config.setdefault("hidden_depth", checkpoint_hidden_depth(checkpoint["actor"]))
         if config["state_dim"] != env.observation_space.shape[0] or config["action_dim"] != 8:
             raise ValueError("Checkpoint observation/action dimensions do not match the environment")
         config["device"] = device
@@ -94,7 +94,7 @@ def evaluate(checkpoint, *, episodes=10, seed=20_000, device="auto", render=Fals
 
 
 def train(*, total_timesteps=300_000, output_dir="runs/door_ppohand", seed=0,
-          model_path=DEFAULT_MODEL, n_steps=2048, epochs=10, hidden_dim=128,
+          model_path=DEFAULT_MODEL, n_steps=2048, epochs=10, hidden_dim=256,
           config=None, render=False, device="auto", eval_episodes=10, batch_size=64):
     if total_timesteps < 1 or n_steps < 2 or eval_episodes < 1:
         raise ValueError("timesteps/eval_episodes must be positive; n_steps must be >= 2")
@@ -178,7 +178,7 @@ def main():
     parser.add_argument("--n-steps", type=int, default=2048)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--hidden-dim", type=int, default=128)
+    parser.add_argument("--hidden-dim", type=int, default=256)
     parser.add_argument("--gamma", type=float, default=0.999)
     parser.add_argument("--max-steps", type=int, default=1000)
     parser.add_argument("--action-scale", type=float, default=0.03)

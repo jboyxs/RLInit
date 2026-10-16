@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rlinit.algorithmhand.PPOhand import PPO
+from rlinit.algorithmhand.PPOhand import PPO, checkpoint_hidden_depth
 from rlinit.algorithmhand.evaluation import final_eval_seed
 from rlinit.algorithmhand.reach_env import DEFAULT_MODEL, ReachEnv
 
@@ -39,7 +39,7 @@ def load_agent(path, env, device="auto"):
     if checkpoint.get("format") != "rlinit-ppohand-v1":
         raise ValueError("需要此脚本生成的 PPOhand .pt 模型")
     config = dict(checkpoint["config"])
-    config.setdefault("hidden_depth", 2 if "fc3.weight" in checkpoint["actor"] else 1)
+    config.setdefault("hidden_depth", checkpoint_hidden_depth(checkpoint["actor"]))
     config["device"] = device
     if (config["state_dim"] != env.observation_space.shape[0]
             or config["action_dim"] != env.action_space.shape[0]):
@@ -84,7 +84,7 @@ def evaluate(checkpoint, episodes=20, seed=10_000, model_path=DEFAULT_MODEL, ren
 
 
 def train(total_timesteps=300_000, output_dir="runs/reach_ppohand", seed=0,
-          model_path=DEFAULT_MODEL, n_steps=2048, epochs=10, hidden_dim=128,
+          model_path=DEFAULT_MODEL, n_steps=2048, epochs=10, hidden_dim=256,
           render=False, device="auto", batch_size=64):
     if total_timesteps < 1 or n_steps < 2:
         raise ValueError("timesteps 须为正数，n_steps 须至少为 2")
@@ -172,7 +172,7 @@ def main():
     parser.add_argument("--n-steps", type=int, default=2048, help="每次更新前收集的环境交互步数")
     parser.add_argument("--batch-size", type=int, default=64, help="每个小批次的样本数")
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--hidden-dim", type=int, default=128)
+    parser.add_argument("--hidden-dim", type=int, default=256)
     parser.add_argument("--evaluate", type=Path, help="加载 PPOhand .pt 模型评估")
     parser.add_argument("--episodes", type=int, default=20)
     parser.add_argument("--render", action="store_true", help="显示训练或评估窗口")

@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from rlinit.algorithmhand.PPOhand import PPO
+from rlinit.algorithmhand.PPOhand import PPO, checkpoint_hidden_depth
 from rlinit.algorithmhand.door_curriculum import CurriculumProgress, evaluate_policy
 from rlinit.algorithmhand.door_curriculum_env import CurriculumConfig, DoorCurriculumEnv, STAGES
 from rlinit.algorithmhand.door_env import DEFAULT_MODEL, DoorConfig
@@ -25,8 +25,10 @@ ROLLOUT_KEYS = ("states", "actions", "rewards", "next_states", "terminated", "tr
 
 
 def save_agent(agent, env, path, agent_config, progress, timesteps):
+    """Save a live environment or a parallel trainer's environment specification."""
     torch.save({
-        "format": FORMAT, "agent_config": agent_config, "environment": env.specification(),
+        "format": FORMAT, "agent_config": agent_config,
+        "environment": env if isinstance(env, dict) else env.specification(),
         "progress": asdict(progress), "timesteps": timesteps,
         "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
         "actor_optimizer": agent.actor_optimizer.state_dict(),
@@ -49,6 +51,7 @@ def load_agent(path, *, device="auto", render=False, model_path=None,
     )
     try:
         config = {**checkpoint["agent_config"], "device": device}
+        config.setdefault("hidden_depth", checkpoint_hidden_depth(checkpoint["actor"]))
         if (config["state_dim"] != env.observation_space.shape[0]
                 or config["action_dim"] != env.action_space.shape[0]):
             raise ValueError("Checkpoint observation/action dimensions do not match the curriculum environment")
@@ -83,14 +86,14 @@ def train(*, total_timesteps=1_000_000, output_dir="runs/door_curriculum_hand", 
           model_path=DEFAULT_MODEL, config=None, curriculum=None,
           start_stage="reach", home_probability=0.0, eval_freq=10_000,
           eval_episodes=10, threshold=0.8, patience=2, home_step=0.25,
-          n_steps=2048, batch_size=64, epochs=10, hidden_dim=128,
+          n_steps=2048, batch_size=64, epochs=10, hidden_dim=256,
           render=False, device="auto"):
     if min(total_timesteps, eval_freq, eval_episodes, patience) < 1 or n_steps < 2:
         raise ValueError("Budgets, evaluation count and patience must be positive; n_steps must be >= 2")
     if not 0 < threshold <= 1 or not 0 < home_step <= 1:
         raise ValueError("threshold and home_step must be in (0, 1]")
     # Match the SB3 curriculum discount while retaining the handwritten PPO's
-    # two-layer 128 ReLU networks, tanh Gaussian and separate optimizers.
+    # three-layer 256 ReLU networks, tanh Gaussian and separate optimizers.
     core = config or DoorConfig(gamma=0.99)
     lesson = curriculum or CurriculumConfig()
     progress = CurriculumProgress(stage=start_stage, home_probability=home_probability)
@@ -242,7 +245,7 @@ def main():
     parser.add_argument("--n-steps", type=int, default=2048)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--hidden-dim", type=int, default=128)
+    parser.add_argument("--hidden-dim", type=int, default=256)
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--max-steps", type=int, default=1000)
     parser.add_argument("--action-scale", type=float, default=0.03)

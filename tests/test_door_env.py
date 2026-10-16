@@ -109,7 +109,7 @@ class DoorEnvTests(unittest.TestCase):
             loaded, restored_env = load_agent(path, device="cpu")
             self.addCleanup(restored_env.close)
             self.assertEqual(restored_env.config, env.config)
-            self.assertEqual(loaded.hidden_depth, 2)
+            self.assertEqual(loaded.hidden_depth, 3)
             np.testing.assert_array_equal(agent.take_action(state, deterministic=True),
                                           loaded.take_action(state, deterministic=True))
 

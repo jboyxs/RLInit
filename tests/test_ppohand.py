@@ -79,6 +79,43 @@ class PPOHandTests(unittest.TestCase):
         self.assertEqual(value.shape, (2,))
         self.assertTrue(torch.isfinite(value).all())
 
+    def test_extreme_probability_ratios_do_not_corrupt_parameters(self):
+        # Positive advantages hit the subtle case: the old loss is finite,
+        # but exp overflow in its clipped branch still creates NaN gradients.
+        for advantages in ([1., 1., 1., 1.], [1., -1., 1., -1.]):
+            with self.subTest(advantages=advantages):
+                agent = PPO(state_dim=2, action_dim=1, hidden_dim=8, device="cpu")
+                states = torch.zeros(4, 2)
+                actions = torch.zeros(4, 1)
+                with torch.no_grad():
+                    old_log_probs = agent.actor.log_prob(states, actions) - torch.tensor([100., 100., -100., -100.])
+                losses = agent._update_batch(states, actions, torch.tensor(advantages),
+                                             torch.zeros(4), old_log_probs)
+                self.assertTrue(all(np.isfinite(value) for value in losses.values()))
+                for network, optimizer in ((agent.actor, agent.actor_optimizer), (agent.critic, agent.critic_optimizer)):
+                    self.assertTrue(all(torch.isfinite(p).all() for p in network.parameters()))
+                    self.assertTrue(all(torch.isfinite(value).all() for state in optimizer.state.values()
+                                        for value in state.values() if torch.is_tensor(value)))
+
+    def test_nonfinite_gradients_leave_both_networks_and_optimizers_unchanged(self):
+        for broken_network in ("actor", "critic"):
+            with self.subTest(network=broken_network):
+                agent = PPO(state_dim=2, action_dim=1, hidden_dim=8, device="cpu")
+                states, actions = torch.zeros(2, 2), torch.zeros(2, 1)
+                old_log_probs = agent.actor.log_prob(states, actions).detach()
+                before = [p.detach().clone() for p in (*agent.actor.parameters(), *agent.critic.parameters())]
+                parameter = next(getattr(agent, broken_network).parameters())
+                hook = parameter.register_hook(lambda grad: torch.full_like(grad, float("nan")))
+                try:
+                    with self.assertRaisesRegex(RuntimeError, "non-finite"):
+                        agent._update_batch(states, actions, torch.ones(2), torch.ones(2), old_log_probs)
+                finally:
+                    hook.remove()
+                for expected, actual in zip(before, (*agent.actor.parameters(), *agent.critic.parameters())):
+                    torch.testing.assert_close(expected, actual, rtol=0, atol=0)
+                self.assertFalse(agent.actor_optimizer.state)
+                self.assertFalse(agent.critic_optimizer.state)
+
     def test_checkpoint_roundtrip_and_legacy_metadata(self):
         env = ReachEnv()
         self.addCleanup(env.close)
