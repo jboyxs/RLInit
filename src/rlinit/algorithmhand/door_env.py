@@ -177,6 +177,28 @@ class DoorEnv(gym.Env):
         opening = np.clip(self.data.qpos[self.hinge] / self.config.success_angle, 0, 1)
         return float(2 * reach + alignment * reach + 2 * grasp * press + 10 * opening)
 
+    def _is_success(self, *, grasp, reason):
+        if grasp and self.data.qpos[self.hinge] >= self.config.success_angle and not reason:
+            self.success_time = min(self.config.success_hold_seconds, self.success_time + self.dt)
+        else:
+            self.success_time = 0.0
+        return self.success_time >= self.config.success_hold_seconds
+
+    def _reward_components(self, *, features, terminated, potential_before, newly_grasped,
+                           newly_pressed, success, reason, peak_bad_force, action):
+        return {
+            # Discounted potential differences avoid repeatedly paying for a fixed pose.
+            "progress": self.config.gamma * (0.0 if terminated else self._potential(features)) - potential_before,
+            "grasp_milestone": 2.0 * newly_grasped,
+            "press_milestone": 3.0 * newly_pressed,
+            "success": 50.0 * success,
+            "failure": -20.0 * bool(reason),
+            "collision": -0.002 * min(peak_bad_force, 100.0),
+            "action": -0.001 * float(np.mean(action[:7] ** 2)),
+            "smoothness": -0.0005 * float(np.mean((action - self.previous_action) ** 2)),
+            "time": -0.01,
+        }
+
     def _obs(self):
         delta, rotation, _, normal, _, _, _ = self._features()
         qpos = self.data.qpos.copy() / np.pi
@@ -278,26 +300,14 @@ class DoorEnv(gym.Env):
         self.grasp_seen |= grasp
         newly_pressed = grasp and self.data.qpos[self.latch] >= 1.1 and not self.press_seen
         self.press_seen |= newly_pressed
-        if grasp and self.data.qpos[self.hinge] >= self.config.success_angle and not reason:
-            self.success_time = min(self.config.success_hold_seconds, self.success_time + self.dt)
-        else:
-            self.success_time = 0.0
-        success = self.success_time >= self.config.success_hold_seconds
+        success = self._is_success(grasp=grasp, reason=reason)
         terminated = bool(success or reason)
         truncated = bool(self.steps >= self.config.max_steps and not terminated)
-        components = {
-            # Discounted potential differences reduce rewards for simply waiting
-            # near a handle and cannot repeatedly pay a fixed grasping bonus.
-            "progress": self.config.gamma * (0.0 if terminated else self._potential(features)) - potential_before,
-            "grasp_milestone": 2.0 * newly_grasped,
-            "press_milestone": 3.0 * newly_pressed,
-            "success": 50.0 * success,
-            "failure": -20.0 * bool(reason),
-            "collision": -0.002 * min(peak_bad_force, 100.0),
-            "action": -0.001 * float(np.mean(action[:7] ** 2)),
-            "smoothness": -0.0005 * float(np.mean((action - self.previous_action) ** 2)),
-            "time": -0.01,
-        }
+        components = self._reward_components(
+            features=features, terminated=terminated, potential_before=potential_before,
+            newly_grasped=newly_grasped, newly_pressed=newly_pressed, success=success,
+            reason=reason, peak_bad_force=peak_bad_force, action=action,
+        )
         self.previous_action = action.copy()
         self._ended = terminated or truncated
         info = self._info(reason=reason, success=success, peak_depth=peak_depth)

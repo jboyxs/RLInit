@@ -309,6 +309,34 @@ uv run --no-sync python -m unittest discover -s tests -p "test_door_sac*.py" -v
 
 默认输出目录是 `runs/door_sac_parallel/`，每个采样环境单独写入 `workers/<编号>.monitor.csv`，其余模型与指标文件与单环境版一致。周期评估按总采样条数计，不能整除环境数时向上取整，并记录 `effective_eval_freq`；每个环境首种子为 `seed + 编号`。两种入口生成的 SAC 检查点可互相加载评估。
 
+### 参考 `reference/door.py` 的 SAC 奖励实验
+
+新增 `src/rlinit/algorithmhand/door_reference_env.py` 和 `tests/trainp2_sac_reference.py`，把参考文件 `Door.reward()` 的奖励计算应用到当前 TidyBot 开门环境，无需安装 robosuite。默认开启密集奖励（对应参考中的 `reward_shaping=True`）：
+
+- 成功开门：`reward = 1.0`，不再叠加接近和转动奖励。
+- 尚未成功：`reward = 0.25 × (1 − tanh(10 × d)) + clip(0.25 × abs(handle_angle / (π/2)), −0.25, 0.25)`。
+- `d` 为 `pinch_site` 到 `door_handle_site` 的直线距离，单位米，不使用旧奖励中的抓取目标偏移；当前门带有真实弹簧门闩，对应参考的 `use_latch=True`。
+- 全部奖励乘以 `--reward-scale`，默认 1；`--sparse` 切换为参考文件默认的稀疏模式，仅成功时有奖励。
+
+成功判定同参考文件：门角度严格大于 `0.30 rad`，不要求双侧接触或额外保持时间。当前适配环境在成功时立即终止回合；参考文件自身的 episode 生命周期未移植。保留原环境的严重碰撞、穿透、数值异常终止检查和默认 1000 步上限，但不额外添加旧奖励中的时间、动作、碰撞、失败及里程碑奖励项。观测和动作仍为 64 / 8 维，SAC 网络仍采用双层 256 ReLU。
+
+```powershell
+# 使用参考密集奖励训练，默认单环境。
+uv run --no-sync python tests/trainp2_sac_reference.py --timesteps 300000
+# 4 个环境并行采样，保持每条采样经验对应一次梯度更新的比例。
+uv run --no-sync python tests/trainp2_sac_reference.py --n-envs 4 --timesteps 300000
+# 稀疏奖励实验；可以用 --reward-scale 2 调整整体奖励尺度。
+uv run --no-sync python tests/trainp2_sac_reference.py --sparse --output-dir runs/door_sac_reference_sparse
+# 短跑检查，包含实际网络更新及周期评估。
+uv run --no-sync python tests/trainp2_sac_reference.py --n-envs 2 --timesteps 128 --learning-starts 16 --buffer-size 256 --batch-size 16 --max-steps 8 --eval-freq 64 --episodes 1 --device cpu --output-dir runs/door_sac_reference_smoke
+# 根据模型内保存的奖励与环境配置评估；可加 --render 显示。
+uv run --no-sync python tests/trainp2_sac_reference.py --evaluate runs/door_sac_reference/sac_door.zip --episodes 10 --seed 20000 --render
+# 核对参考公式、真实接触开门、单环境/并行训练和检查点恢复。
+uv run --no-sync python -m unittest discover -s tests -p test_door_sac_reference.py -v
+```
+
+默认输出到 `runs/door_sac_reference/`，模型、日志、配置和评估文件沿用 SAC 的文件组织方式。模型中保存独立任务标识、奖励模式与缩放系数，最终模型和最佳模型都按此配置恢复评估；原 SAC 入口仍保留其原有奖励。短跑和确定性物理轨迹检查只验证实现，训练效果以独立评估的成功率为准。
+
 6. Curriculum Learning：独立课程环境与训练入口
 
 课程环境为 `src/rlinit/algorithmhand/door_curriculum_env.py`，训练脚本为 `tests/train_curriculum.py`。复用原环境的机器人、接触、动作映射和失败检查，使用独立的阶段目标、密集奖励和初始化分布；原 `door_env.py` 及两个原训练入口保持独立。
