@@ -40,9 +40,9 @@ def camera() -> mujoco.MjvCamera:
 
 
 class DoorTrial:
-    def __init__(self, scenario: str):
+    def __init__(self, scenario: str, model_path=MODEL):
         self.scenario = scenario
-        self.model = m = mujoco.MjModel.from_xml_path(str(MODEL))
+        self.model = m = mujoco.MjModel.from_xml_path(str(model_path))
         self.data = d = mujoco.MjData(m)
         mujoco.mj_resetDataKeyframe(m, d, m.key("home").id)
         mujoco.mj_forward(m, d)

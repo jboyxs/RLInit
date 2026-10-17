@@ -348,6 +348,29 @@ uv run --no-sync python tests/trainp2_sac_reference_large.py --n-envs 4 --timest
 uv run --no-sync python tests/trainp2_sac_reference_large.py --evaluate runs/door_sac_reference_large/sac_door.zip --episodes 10 --seed 20000 --render
 ```
 
+### 大网络 SAC：固定策略示范预填充经验池
+
+`tests/trainp2_sac_reference_large_demo.py` 在大网络参考奖励版基础上，先利用 `tests/verify_door_opening.py` 的 `DoorTrial.run()` 生成机械臂目标轨迹，再在真实的固定底盘 `ReferenceRewardDoorEnv` 中采集示范。关节目标转换为相对累计控制目标的七维增量动作，夹爪命令转换为第八维动作，裁剪到 `[-1, 1]` 后通过 `env.step()` 执行；64 维观测、奖励、下一观测、成功/失败终止和超时截断全部来自训练环境。不会将原脚本的不同维度物理状态直接塞入经验池。
+
+默认采集 10 回合，初始噪声沿用 `--initial-noise`（默认 0.02），首个示范种子为 `训练 seed + 30000`。用 `--demo-episodes`、`--demo-seed` 和 `--demo-initial-noise` 调整；设 `--demo-initial-noise 0` 可从精确 home 状态采集。失败和超时轨迹也作为真实经验保留，采集报告记录各回合成功、门角度、动作裁剪和失败原因；没有成功示范时打印警告。
+
+采集结束后，在第一次在线交互之前预填充 SAC 的同一个经验池，随后按普通 SAC 均匀采样更新，Actor/两个 Q 网络仍为 `[1024, 1024]`。示范不计入 `--timesteps`，`--learning-starts` 仍表示在线随机探索步数（默认 100；设 0 可直接开始更新）。未增加行为克隆或固定示范采样比例，经验池写满后旧示范会逐步被覆盖，是否学会仍以从 home 独立评估的成功率为准。超时转移保留 bootstrap，成功/失败终止不 bootstrap；并行经验池末行不足时重复开头至多 `n_envs - 1` 条转移补齐，并在配置中记录。容量不足以容纳全部示范时明确报错。
+
+```powershell
+# 采集 10 回合示范，再训练 30 万在线步。
+uv run --no-sync python tests/trainp2_sac_reference_large_demo.py --demo-episodes 10 --timesteps 300000
+# 4 个环境并行训练；示范采集仍在独立的单环境中执行。
+uv run --no-sync python tests/trainp2_sac_reference_large_demo.py --n-envs 4 --demo-episodes 10 --timesteps 300000
+# 小规模验证：完整采集一次成功示范，再执行少量真实 SAC 更新。
+uv run --no-sync python tests/trainp2_sac_reference_large_demo.py --demo-episodes 1 --demo-initial-noise 0 --timesteps 8 --learning-starts 0 --buffer-size 4096 --batch-size 8 --eval-freq 8 --episodes 1 --device cpu --output-dir runs/door_sac_reference_large_demo_smoke
+# 加载训练后的自主策略评估，可实时查看。
+uv run --no-sync python tests/trainp2_sac_reference_large_demo.py --evaluate runs/door_sac_reference_large_demo/sac_door.zip --episodes 10 --seed 20000 --render
+# 验证实际示范转移、终止/超时掩码、并行预填充、网络更新和模型恢复。
+uv run --no-sync python -m unittest discover -s tests -p test_door_sac_reference_large_demo.py -v
+```
+
+默认输出到 `runs/door_sac_reference_large_demo/`，除原有模型、训练日志和评估结果外，还保存 `demonstrations.npz`（观测、下一观测、动作、奖励、terminated、truncated、回合编号和动作阶段）、`demonstrations.json`（采集设置、环境配置和逐回合结果）及训练结束的 `replay_buffer.pkl`（示范与在线经验）。`config.json` 的 `demonstrations` 字段记录预填充数量、并行补齐数量和文件路径，最佳/最终模型内也保存示范来源信息；评估时不运行固定控制脚本。完整经验池使用 SB3 原生序列化，文件大小随经验池分配容量增长。
+
 6. Curriculum Learning：独立课程环境与训练入口
 
 课程环境为 `src/rlinit/algorithmhand/door_curriculum_env.py`，训练脚本为 `tests/train_curriculum.py`。复用原环境的机器人、接触、动作映射和失败检查，使用独立的阶段目标、密集奖励和初始化分布；原 `door_env.py` 及两个原训练入口保持独立。

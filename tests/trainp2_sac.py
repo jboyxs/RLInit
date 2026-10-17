@@ -156,7 +156,8 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
           model_path=DEFAULT_MODEL, env_config=None, learning_rate=None, buffer_size=None,
           learning_starts=None, batch_size=None, train_freq=None, gradient_steps=None,
           gamma=None, tau=None, ent_coef=None, eval_freq=10_000, eval_episodes=10,
-          render=False, device="auto", n_envs=1, reference_reward=None, policy_kwargs=None):
+          render=False, device="auto", n_envs=1, reference_reward=None, policy_kwargs=None,
+          replay_buffer_initializer=None, save_replay_buffer=False):
     if min(total_timesteps, eval_freq, eval_episodes) < 1:
         raise ValueError("timesteps/eval_freq/eval_episodes must be positive")
     if not isinstance(n_envs, int) or n_envs < 1:
@@ -207,6 +208,7 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
         agent.door_environment = specification
         logger = configure(str(output / "logs"), ["stdout", "csv"])
         agent.set_logger(logger)
+        replay_metadata = replay_buffer_initializer(agent) if replay_buffer_initializer is not None else None
         settings = dict(actual, net_arch=agent.policy.net_arch,
                         activation=agent.policy.activation_fn.__name__,
                         optimizer=agent.policy.optimizer_class.__name__,
@@ -225,6 +227,8 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
         # transitions. Round up so evaluation never runs earlier than requested.
         callback_freq = max(1, (eval_freq + n_envs - 1) // n_envs)
         run_config["effective_eval_freq"] = callback_freq * n_envs
+        if replay_metadata is not None:
+            run_config["demonstrations"] = replay_metadata
         config_path = output / "config.json"
         config_path.write_text(json.dumps(run_config, indent=2) + "\n", encoding="utf-8")
         print(f"SAC n_envs={n_envs}, network={settings['net_arch']}, activation={settings['activation']}, "
@@ -242,6 +246,10 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
         agent.logger.dump(step=agent.num_timesteps)
         checkpoint = output / "sac_door.zip"
         agent.save(checkpoint)
+        if save_replay_buffer:
+            replay_path = output / "replay_buffer.pkl"
+            agent.save_replay_buffer(replay_path)
+            run_config["replay_buffer_path"] = str(replay_path)
         run_config.update(actual_timesteps=agent.num_timesteps, gradient_updates=agent._n_updates,
                           training_seconds=training_seconds,
                           transitions_per_second=agent.num_timesteps / max(training_seconds, 1e-9))
