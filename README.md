@@ -443,3 +443,28 @@ uv run --no-sync python -m unittest discover -s tests -p test_door_curriculum_ha
 默认输出到 `runs/door_curriculum_hand/`：`ppo_curriculum_hand.pt`、各阶段最佳模型 `best/*.pt`、`episodes.csv`、`updates.csv`、`curriculum.csv`、阶段评估 JSON、`config.json` 和从 home 评估完整任务的 `metrics.json`。检查点保存网络、优化器、环境、课程配置与升级进度；当前入口支持训练和评估。手写课程 `.pt`、SB3 课程 `.zip` 和原 64 维任务 `.pt` 分别用各自入口加载。
 
 8. 改用off policy的方法
+
+### SAC + 相同课程奖励与初始情景
+
+`tests/train_curriculum_sac.py` 以 `tests/trainp2_sac.py` 为 SAC 基准，复用 `tests/train_curriculum_hand.py` 的 `DoorCurriculumEnv`、`CurriculumProgress` 和独立确定性评估。Actor/两个 Q 网络继续使用 SAC 默认双层 `[256, 256]` ReLU；学习率 `3e-4`、经验池容量 100 万、随机探索 100 步、batch 256、每采样一步更新一次、gamma=0.99、tau=0.005、自动熵系数均沿用原 SAC 默认值。原 SAC 的超参数覆盖选项继续有效。
+
+环境使用相同的 `reach → grasp → press → open → full` 阶段、容易起点、密集成本和成功/失败奖励。观测为课程环境的 70 维，动作仍为 8 维；`reach` 阶段保持夹爪张开。默认每 10000 步独立评估 10 回合，连续两次成功率至少 80% 才推进；home 概率按 0.25 增加。总预算默认为原 SAC 的 30 万步，可用 `--timesteps` 增加。
+
+评估和升级在完整 SAC 采样/更新结束后执行，设置更大的 `--train-freq` 时，实际采样步数可向上取整。切换阶段或 home 比例时重置环境，保留同一组网络、优化器及经验池；每条转移的观测都包含其原来的阶段和 home 比例，下一观测也保留原阶段，不会拼接新阶段的 reset 状态。`--learning-starts` 按全局在线步数计，仅执行一次初始随机探索。容易起点仅用于 reset，不预填充示范经验。
+
+```powershell
+# SAC 课程训练，默认从 reach 阶段开始。
+uv run --no-sync python tests/train_curriculum_sac.py --timesteps 300000
+# 延长预算并实时观察当前阶段。
+uv run --no-sync python tests/train_curriculum_sac.py --timesteps 1000000 --render
+# 短跑验证实际 SAC 更新和课程评估。
+uv run --no-sync python tests/train_curriculum_sac.py --timesteps 24 --learning-starts 4 --buffer-size 128 --batch-size 8 --max-steps 8 --eval-freq 12 --episodes 1 --device cpu --output-dir runs/door_curriculum_sac_smoke
+# 评估检查点所处阶段。
+uv run --no-sync python tests/train_curriculum_sac.py --evaluate runs/door_curriculum_sac/sac_curriculum.zip --episodes 10 --seed 20000 --render
+# 严格评估从 home 开始的完整开门。
+uv run --no-sync python tests/train_curriculum_sac.py --evaluate runs/door_curriculum_sac/sac_curriculum.zip --full-task --episodes 10 --seed 20000 --render
+# 检查 SAC 默认参数、真实更新、阶段切换、经验池和模型恢复。
+uv run --no-sync python -m unittest discover -s tests -p test_door_curriculum_sac.py -v
+```
+
+默认输出到 `runs/door_curriculum_sac/`：`sac_curriculum.zip`、各阶段最佳模型 `best/*.zip`、各阶段 Monitor 日志、`curriculum.csv`、`logs/progress.csv`、阶段评估 JSON、`config.json` 和最终从 home 评估的 `metrics.json`。最佳模型按当前阶段成功率、再按平均回报选取。检查点保存独立 SAC 课程格式、环境和升级进度，支持 `--model` 指定场景位置，不依赖旁边的配置文件。用本入口评估课程模型；原 64 维 SAC、PPO 课程 `.zip`、手写 PPO `.pt` 各用其原入口。短跑和子任务成功不代表已经学会完整开门。
