@@ -371,6 +371,17 @@ uv run --no-sync python -m unittest discover -s tests -p test_door_sac_reference
 
 默认输出到 `runs/door_sac_reference_large_demo/`，除原有模型、训练日志和评估结果外，还保存 `demonstrations.npz`（观测、下一观测、动作、奖励、terminated、truncated、回合编号和动作阶段）、`demonstrations.json`（采集设置、环境配置和逐回合结果）及训练结束的 `replay_buffer.pkl`（示范与在线经验）。`config.json` 的 `demonstrations` 字段记录预填充数量、并行补齐数量和文件路径，最佳/最终模型内也保存示范来源信息；评估时不运行固定控制脚本。完整经验池使用 SB3 原生序列化，文件大小随经验池分配容量增长。
 
+`tests/trainp2_sac_reference_small_demo.py` 提供小网络对照：Actor 和两个 Q 网络均使用双层 `[256, 256]` ReLU，示范采集、均匀经验回放、奖励和其余 SAC 默认参数与大网络示范版一致。默认输出到独立目录 `runs/door_sac_reference_small_demo/`，配置和检查点保存实际网络结构。
+
+```powershell
+# 小网络示范预填充训练。
+uv run --no-sync python tests/trainp2_sac_reference_small_demo.py --demo-episodes 10 --timesteps 300000
+# 并行采样；与大网络比较时保持相同 seed、环境数和训练参数。
+uv run --no-sync python tests/trainp2_sac_reference_small_demo.py --n-envs 4 --demo-episodes 10 --timesteps 300000
+# 加载小网络模型进行渲染评估。
+uv run --no-sync python tests/trainp2_sac_reference_small_demo.py --evaluate runs/door_sac_reference_small_demo/sac_door.zip --episodes 10 --seed 20000 --render
+```
+
 6. Curriculum Learning：独立课程环境与训练入口
 
 课程环境为 `src/rlinit/algorithmhand/door_curriculum_env.py`，训练脚本为 `tests/train_curriculum.py`。复用原环境的机器人、接触、动作映射和失败检查，使用独立的阶段目标、密集奖励和初始化分布；原 `door_env.py` 及两个原训练入口保持独立。

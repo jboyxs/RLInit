@@ -19,7 +19,7 @@ import numpy as np
 from rlinit.algorithmhand.door_env import DEFAULT_MODEL, DoorConfig
 from rlinit.algorithmhand.door_reference_env import ReferenceRewardConfig, ReferenceRewardDoorEnv
 from trainp2_sac import build_parser, evaluate
-from trainp2_sac_reference_large import train as train_large
+from trainp2_sac_reference import train as train_reference
 from verify_door_opening import CONTROL_DT, DoorTrial
 
 
@@ -140,7 +140,9 @@ def prefill_replay_buffer(agent, data):
 
 
 def train(*, demo_episodes=10, demo_seed=None, demo_initial_noise=None,
-          output_dir="runs/door_sac_reference_large_demo", seed=0, **kwargs):
+          output_dir="runs/door_sac_reference_large_demo", seed=0, net_arch=(1024, 1024), **kwargs):
+    if not net_arch or any(not isinstance(width, int) or width < 1 for width in net_arch):
+        raise ValueError("net_arch must contain positive integer layer widths")
     output = Path(output_dir).resolve()
 
     def initialize(agent):
@@ -167,14 +169,14 @@ def train(*, demo_episodes=10, demo_seed=None, demo_initial_noise=None,
               f"demo success={report['success_rate']:.1%}", flush=True)
         return metadata
 
-    return train_large(output_dir=output, seed=seed, replay_buffer_initializer=initialize,
-                       save_replay_buffer=True, **kwargs)
+    return train_reference(output_dir=output, seed=seed, replay_buffer_initializer=initialize,
+                           save_replay_buffer=True, policy_kwargs={"net_arch": list(net_arch)}, **kwargs)
 
 
-def main():
+def main(*, train_fn=train, output_dir="runs/door_sac_reference_large_demo", description=__doc__):
     parser = build_parser()
-    parser.description = __doc__
-    parser.set_defaults(output_dir=Path("runs/door_sac_reference_large_demo"), gradient_steps=-1)
+    parser.description = description
+    parser.set_defaults(output_dir=Path(output_dir), gradient_steps=-1)
     parser.add_argument("--n-envs", type=int, default=1)
     parser.add_argument("--torch-threads", type=int, default=1)
     parser.add_argument("--reward-scale", type=float, default=1.0)
@@ -189,7 +191,7 @@ def main():
                            device=args.device, render=args.render, model_path=args.model)
         print(json.dumps(metrics, indent=2))
     else:
-        train(total_timesteps=args.timesteps, output_dir=args.output_dir, seed=args.seed,
+        train_fn(total_timesteps=args.timesteps, output_dir=args.output_dir, seed=args.seed,
               n_envs=args.n_envs, torch_threads=args.torch_threads,
               model_path=args.model or DEFAULT_MODEL,
               env_config=DoorConfig(max_steps=args.max_steps, action_scale=args.action_scale,
