@@ -108,7 +108,10 @@ class DoorEnv(gym.Env):
         roll90 = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
         ideal_grasp = roll90 @ d.site_xmat[self.ee].reshape(3, 3)
         self.grasp_relative_rotation = d.site_xmat[self.handle_site].reshape(3, 3).T @ ideal_grasp
-        self.grasp_relative_position = np.array([0, -0.01, 0])
+        # Center along the handle bar: its local X is 0.075 vs the site's 0.125.
+        # Keep the existing 1 cm approach offset along local -Y.
+        #修改成了门把手把柄的中间
+        self.grasp_relative_position = np.array([-0.05, -0.01, 0])
         self.action_space = spaces.Box(-1.0, 1.0, shape=(8,), dtype=np.float32)
         # 34 physical + 7 targets + 8 action history + 4 flags/timers/time
         # + 3 relative position + 6 relative rotation + 2 contact forces = 64.
