@@ -286,6 +286,41 @@ uv run --no-sync python -m unittest discover -s tests -p test_door_sac.py -v
 
 SAC 单环境版和并行版默认每回合最多执行 **1000 步**（50 Hz 下为 20 秒仿真时间），可用 `--max-steps` 覆盖。命令行与未显式传入环境配置的 `train()` 使用相同默认值；评估已有检查点时仍恢复其中保存的回合上限。
 
+### 使用当前状态直接奖励训练 SAC
+
+`tests/trainp2_sac_direct.py` 复用 `trainp2_sac.py` 的 SAC 默认参数、网络和训练/评估流程，使用 `src/rlinit/algorithmhand/door_direct_env.py`。奖励计算方式参照 `door_reference_env.py`，直接按动作执行后的状态计分；位置项采用两侧指垫到把手表面的距离之和，对齐项使用距离衰减的正奖励，其余特征和权重参照 `door_env.py`，不计算 `gamma × Phi(s_next) − Phi(s)`：
+
+```text
+d = norm(上爪内侧中心 - 把手上表面中心) + norm(下爪内侧中心 - 把手下表面中心)
+distance = -distance_weight × d
+orientation = orientation_weight × alignment × exp(-d / 0.08)
+press   = clip(把手角度 / 1.3, 0, 1)
+opening = clip(门角度 / success_angle, 0, 1)
+r_dense = distance + orientation + 2 × grasp × press + 10 × opening
+r       = r_dense + 抓取里程碑 + 压把手里程碑 + 成功奖励 + 各项惩罚
+```
+
+正确抓取姿态下，上爪对应 `left_pad`、下爪对应 `right_pad`，按此固定配对，不随世界高度交换身份。每侧内表面中心为 `pad1/pad2` 两个接触盒各自局部 `-Y` 表面中心的均值。把手上下目标点取横杆的局部 `+Z/-Z` 表面中心，位于 `door_handle_body` 局部坐标 `[0.075, -0.10, +0.02]` 和 `[0.075, -0.10, -0.02]`，随门及把手转动，不添加原抓取目标的接近偏移。两段距离均在世界坐标中计算，单位为米；位置惩罚为距离之和乘以 `-distance_weight`，默认系数以环境构造函数为准。
+
+`info["distance"]` 及监控日志记录新的距离之和，`upper_finger_distance_m/lower_finger_distance_m` 分别记录两段距离，`grasp_target_distance_m` 保留原夹爪中心到抓取目标的距离。64 维观测中的相对抓取目标位置仍沿用 `DoorEnv` 的计算。`alignment` 是原版的姿态对齐度，范围 `[0, 1]`；对齐正奖励使用同一表面距离之和 `d`，对齐度为 0 时为 0，越靠近且越对齐奖励越高。`orientation_weight=1` 时即为 `alignment × exp(-d/0.08)`。`grasp` 表示双侧指尖接触把手。抓取/压把手里程碑每回合分别只奖励一次 `+2/+3`，成功 `+50`、失败 `-20`，碰撞、动作幅度、动作平滑和每步时间惩罚均保留原值。密集项每步直接累加，包括成功、失败或超时的最后一步，奖励值不受 gamma 影响（gamma 仍用于 SAC 折扣）。成功仍要求抓住把手、门角度达到阈值并保持 0.30 秒；观测、动作、物理失败检查和默认 1000 步回合上限沿用原版。
+
+新检查点记录实际的 `distance_weight` 和 `orientation_weight` 系数、`distance_metric=finger_surface_sum`、`position_reward=linear_distance` 和 `orientation_reward=proximity_alignment`。此前 `orientation_reward=orientation_cost` 的检查点仍按保存系数恢复负姿态误差奖励；缺少 `orientation_weight` 时使用原系数 0.25；缺少 `distance_weight` 时使用原系数 5；缺少 `distance_metric` 时恢复原夹爪中心到抓取目标的距离；缺少 `orientation_reward` 时，恢复原对齐项 `alignment × exp(-夹爪中心到抓取目标距离/0.08)`；同时缺少 `position_reward` 时，位置项恢复为 `2 × exp(-夹爪中心到抓取目标距离/0.08)`。各版回报不宜直接比较。
+
+调整新训练的位置和对齐系数，只需修改 `src/rlinit/algorithmhand/door_direct_env.py` 中 `DirectRewardDoorEnv.__init__` 的 `distance_weight` 和 `orientation_weight` 默认值，然后重新启动训练。训练入口、各并行采样进程和周期评估环境直接使用环境默认值，无需同步修改训练脚本；已有检查点评估仍恢复模型保存的系数。
+
+```powershell
+# 正式训练，独立输出到 runs/door_sac_direct/。
+uv run --no-sync python tests/trainp2_sac_direct.py --timesteps 300000
+# 短跑验证，包含 SAC 更新、周期评估和保存。
+uv run --no-sync python tests/trainp2_sac_direct.py --timesteps 32 --learning-starts 4 --buffer-size 64 --batch-size 8 --max-steps 4 --eval-freq 16 --episodes 1 --device cpu --output-dir runs/door_sac_direct_smoke
+# 评估时从检查点自动恢复直接奖励环境；也可使用原 SAC 评估入口。
+uv run --no-sync python tests/trainp2_sac_direct.py --evaluate runs/door_sac_direct/sac_door.zip --episodes 10 --seed 20000 --render
+# 验证直接奖励、原版终止规则、单环境/并行训练及检查点恢复。
+uv run --no-sync python -m unittest discover -s tests -p test_door_sac_direct.py -v
+```
+
+支持原 SAC 的全部命令行参数，也可通过 `--n-envs` 开启并行采样。默认 `gradient_steps=1` 与原单环境脚本一致；并行时可显式传入 `--gradient-steps -1`，令每条采样经验对应一次更新。最终模型、最佳模型均保存独立任务标识，恢复评估无需旁边的 `config.json`。短跑仅验证训练流程，不代表已学会开门。
+
 ### 使用多个进程并行采样 SAC
 
 `tests/trainp2_sac_parallel.py` 使用 `SubprocVecEnv` 为每个环境启动独立进程，默认 `--n-envs 4`。多个 MuJoCo 环境并行采样，共用主进程的一套 SAC 网络和经验池；网络结构与单环境版相同。Windows 使用 `spawn`，脚本带主入口保护，可直接运行；其他 Python 脚本调用 `train()` 时也应放在 `if __name__ == "__main__":` 内。

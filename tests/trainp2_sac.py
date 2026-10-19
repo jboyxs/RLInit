@@ -24,6 +24,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from rlinit.algorithmhand.device import resolve_device
+from rlinit.algorithmhand.door_direct_env import TASK as DIRECT_TASK, DirectRewardDoorEnv
 from rlinit.algorithmhand.door_env import DEFAULT_MODEL, DoorConfig, DoorEnv
 from rlinit.algorithmhand.door_reference_env import (
     TASK as REFERENCE_TASK, ReferenceRewardConfig, ReferenceRewardDoorEnv,
@@ -37,17 +38,22 @@ MONITOR_KEYS = ("distance", "is_success", "grasp_seen", "press_seen",
                 "door_angle", "max_door_angle", "failure_reason")
 
 
-def make_environment(model_path, config, *, render=False, reference_reward=None):
+def make_environment(model_path, config, *, render=False, reference_reward=None, direct_reward=False):
+    if direct_reward and reference_reward is not None:
+        raise ValueError("direct_reward and reference_reward cannot be combined")
     kwargs = {"config": config, "render_mode": "human" if render else None}
+    if direct_reward:
+        # New training uses the reward defaults defined in door_direct_env.py.
+        return DirectRewardDoorEnv(model_path, **kwargs)
     if reference_reward is not None:
         return ReferenceRewardDoorEnv(model_path, reward_config=reference_reward, **kwargs)
     return DoorEnv(model_path, **kwargs)
 
 
-def make_worker(model_path, config, monitor_path, reference_reward=None):
+def make_worker(model_path, config, monitor_path, reference_reward=None, direct_reward=False):
     """Construct physics state inside the spawned process, never in the parent."""
     torch.set_num_threads(1)
-    return Monitor(make_environment(model_path, config, reference_reward=reference_reward),
+    return Monitor(make_environment(model_path, config, reference_reward=reference_reward, direct_reward=direct_reward),
                    str(monitor_path) if monitor_path is not None else None, info_keywords=MONITOR_KEYS)
 
 
@@ -98,14 +104,27 @@ def load_agent(checkpoint, *, device="auto", render=False, model_path=None):
     if getattr(agent, "door_task_format", None) != FORMAT:
         raise ValueError("Expected a door-task .zip checkpoint from trainp2_sac.py")
     specification = agent.door_environment
+    direct_reward = specification["task"] == DIRECT_TASK
     if specification["task"] == REFERENCE_TASK:
         reference_reward = ReferenceRewardConfig(**specification["reward_config"])
-    elif specification["task"] == "fixed_base_door_v1":
+    elif specification["task"] in ("fixed_base_door_v1", DIRECT_TASK):
         reference_reward = None
     else:
         raise ValueError(f"Unsupported SAC door task: {specification['task']}")
-    env = make_environment(model_path or specification["model_path"], DoorConfig(**specification["config"]),
-                           render=render, reference_reward=reference_reward)
+    path = model_path or specification["model_path"]
+    config = DoorConfig(**specification["config"])
+    if direct_reward:
+        # Evaluation restores checkpoint values rather than new-training defaults.
+        env = DirectRewardDoorEnv(
+            path, config=config, render_mode="human" if render else None,
+            position_reward=specification.get("position_reward", "exponential_reach"),
+            orientation_reward=specification.get("orientation_reward", "distance_weighted_alignment"),
+            distance_metric=specification.get("distance_metric", "grasp_target"),
+            distance_weight=specification.get("distance_weight", 5.0),
+            orientation_weight=specification.get("orientation_weight", 0.25),
+        )
+    else:
+        env = make_environment(path, config, render=render, reference_reward=reference_reward)
     if (agent.observation_space != env.observation_space
             or agent.action_space != env.action_space or agent.gamma != env.config.gamma):
         env.close()
@@ -157,7 +176,9 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
           learning_starts=None, batch_size=None, train_freq=None, gradient_steps=None,
           gamma=None, tau=None, ent_coef=None, eval_freq=10_000, eval_episodes=10,
           render=False, device="auto", n_envs=1, reference_reward=None, policy_kwargs=None,
-          replay_buffer_initializer=None, save_replay_buffer=False):
+          replay_buffer_initializer=None, save_replay_buffer=False, direct_reward=False):
+    if direct_reward and reference_reward is not None:
+        raise ValueError("direct_reward and reference_reward cannot be combined")
     if min(total_timesteps, eval_freq, eval_episodes) < 1:
         raise ValueError("timesteps/eval_freq/eval_episodes must be positive")
     if not isinstance(n_envs, int) or n_envs < 1:
@@ -180,7 +201,8 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
     try:
         if n_envs == 1:
             env = Monitor(
-                make_environment(model_path, task_config, render=render, reference_reward=reference_reward),
+                make_environment(model_path, task_config, render=render,
+                                 reference_reward=reference_reward, direct_reward=direct_reward),
                 str(output / "train"), info_keywords=MONITOR_KEYS,
             )
             specification = env.unwrapped.specification()
@@ -188,16 +210,18 @@ def train(*, total_timesteps=300_000, output_dir="runs/door_sac", seed=0,
             workers = output / "workers"
             workers.mkdir(exist_ok=True)
             env = SubprocVecEnv([
-                partial(make_worker, str(Path(model_path).resolve()), task_config, workers / str(rank), reference_reward)
+                partial(make_worker, str(Path(model_path).resolve()), task_config,
+                        workers / str(rank), reference_reward, direct_reward)
                 for rank in range(n_envs)
             ], start_method="spawn")
             specification = env.env_method("specification", indices=0)[0]
         if n_envs == 1:
-            eval_env = Monitor(make_environment(model_path, task_config, reference_reward=reference_reward))
+            eval_env = Monitor(make_environment(model_path, task_config,
+                                                reference_reward=reference_reward, direct_reward=direct_reward))
             eval_env.reset(seed=seed + 10_000)
         else:
             eval_env = SubprocVecEnv([
-                partial(make_worker, str(Path(model_path).resolve()), task_config, None, reference_reward)
+                partial(make_worker, str(Path(model_path).resolve()), task_config, None, reference_reward, direct_reward)
             ], start_method="spawn")
             eval_env.seed(seed + 10_000)
         agent = SAC("MlpPolicy", env, seed=seed, device=selected_device, verbose=1,
