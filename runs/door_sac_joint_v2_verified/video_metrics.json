@@ -1,0 +1,15 @@
+{
+  "seed": 70000,
+  "reset_origin": "home",
+  "deterministic": true,
+  "exploration_noise": false,
+  "steps": 300,
+  "simulation_seconds": 6.0,
+  "success": true,
+  "failure": "",
+  "final_door_rad": 0.4075448792712369,
+  "final_handle_rad": 1.6160202021503192,
+  "grasped": true,
+  "success_hold_seconds": 0.3,
+  "checkpoint_sha256": "4892e3611a15f3b0091c2bdc060c0b70ed16b9cb33c2e793e0a20f768c26005d"
+}

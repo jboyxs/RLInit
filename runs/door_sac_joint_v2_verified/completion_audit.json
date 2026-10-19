@@ -1,0 +1,47 @@
+{
+  "verified_at": "2026-10-19T11:09:33.799986+00:00",
+  "goal_achieved": true,
+  "requirements": [
+    {
+      "requirement": "Learn approach, grasp, press and pull with SAC from original noisy-home starts",
+      "evidence": "evaluation.json: 97/100 full successes; 100/100 grasp and press; disjoint heldout seeds",
+      "status": "proven"
+    },
+    {
+      "requirement": "Neural policy directly outputs seven joint increments and one gripper command",
+      "evidence": "SAC MlpPolicy [256,256]; evaluate calls predict then env.step; PrecisionGraspDoorEnv.step delegates to original DoorEnv; near-handle action/physics identity tests",
+      "status": "proven"
+    },
+    {
+      "requirement": "No imitation learning or new traditional action controller",
+      "evidence": "Standard SB3 SAC losses and uniform NStepReplayBuffer; same-task own online replay; no demonstration metadata; direct wrapper rejects demonstration initializer and removed controller options",
+      "status": "proven"
+    },
+    {
+      "requirement": "Preserve original success and failure rules",
+      "evidence": "Full-stage success delegates to original; door >=0.30 rad and bilateral grasp held0.30s; 0.005m penetration/unsafe collision checks retained; original environment/model files have no Git changes",
+      "status": "proven"
+    },
+    {
+      "requirement": "Only trainp2_sac_direct-related changes",
+      "evidence": "Working changes are direct/shared SAC entry points, precision task/replay/evaluation/state curriculum helpers, their tests, diagnostics and README",
+      "status": "proven"
+    },
+    {
+      "requirement": "Concrete usable model and evidence",
+      "evidence": "sac_door.zip, manifest.json hashes, evaluation.json, raw reports, README commands, opening.gif, video_metrics.json; model loaded via standard CLI with explicit scene path",
+      "status": "proven"
+    }
+  ],
+  "tests": {
+    "precision": 16,
+    "replay": 6,
+    "direct": 12,
+    "base": 2,
+    "all_passed": true
+  },
+  "limitations": [
+    "Current simulated scene and original initial noise distribution only; 3/100 penetration failures.",
+    "Selected 140000-step multistep checkpoint inherits earlier online training. Later training checkpoints regressed."
+  ]
+}

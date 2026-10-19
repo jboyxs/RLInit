@@ -1,0 +1,1031 @@
+{
+  "checkpoint_sha256": "4892e3611a15f3b0091c2bdc060c0b70ed16b9cb33c2e793e0a20f768c26005d",
+  "episodes": 100,
+  "successes": 97,
+  "success_rate": 0.97,
+  "grasp_successes": 100,
+  "press_successes": 100,
+  "failure_reasons": {
+    "excessive_penetration": 3
+  },
+  "seeds": [
+    [
+      70000,
+      70019
+    ],
+    [
+      71000,
+      71079
+    ]
+  ],
+  "reset_origins": [
+    "home"
+  ],
+  "deterministic": true,
+  "extra_action_noise": false,
+  "imitation": false,
+  "analytic_action_controller": false,
+  "original_termination_rules": true,
+  "records": [
+    {
+      "seed": 70000,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.350601544410544,
+      "longest_grasp_seconds": 1.44
+    },
+    {
+      "seed": 70001,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.31785264500425,
+      "longest_grasp_seconds": 1.32
+    },
+    {
+      "seed": 70002,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.366056668081452,
+      "longest_grasp_seconds": 1.6600000000000001
+    },
+    {
+      "seed": 70003,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.346098909391408,
+      "longest_grasp_seconds": 1.12
+    },
+    {
+      "seed": 70004,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.36696828291251,
+      "longest_grasp_seconds": 0.92
+    },
+    {
+      "seed": 70005,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.384194113611166,
+      "longest_grasp_seconds": 1.58
+    },
+    {
+      "seed": 70006,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 304,
+      "max_door_deg": 23.414997538753287,
+      "longest_grasp_seconds": 0.88
+    },
+    {
+      "seed": 70007,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.33686643629619,
+      "longest_grasp_seconds": 1.26
+    },
+    {
+      "seed": 70008,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 304,
+      "max_door_deg": 23.350515696503074,
+      "longest_grasp_seconds": 1.4000000000000001
+    },
+    {
+      "seed": 70009,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.35463707903839,
+      "longest_grasp_seconds": 1.56
+    },
+    {
+      "seed": 70010,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 305,
+      "max_door_deg": 23.36204760303735,
+      "longest_grasp_seconds": 1.56
+    },
+    {
+      "seed": 70011,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.367779568860485,
+      "longest_grasp_seconds": 1.3800000000000001
+    },
+    {
+      "seed": 70012,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.359659948544838,
+      "longest_grasp_seconds": 0.96
+    },
+    {
+      "seed": 70013,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.398671320705393,
+      "longest_grasp_seconds": 1.74
+    },
+    {
+      "seed": 70014,
+      "success": false,
+      "grasp": true,
+      "press": true,
+      "failure": "excessive_penetration",
+      "steps": 276,
+      "max_door_deg": 12.707969816761894,
+      "longest_grasp_seconds": 1.56
+    },
+    {
+      "seed": 70015,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.371460611009717,
+      "longest_grasp_seconds": 0.78
+    },
+    {
+      "seed": 70016,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.35283880304375,
+      "longest_grasp_seconds": 1.18
+    },
+    {
+      "seed": 70017,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.32388925481388,
+      "longest_grasp_seconds": 1.2
+    },
+    {
+      "seed": 70018,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.312298660140378,
+      "longest_grasp_seconds": 1.32
+    },
+    {
+      "seed": 70019,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.356053032383098,
+      "longest_grasp_seconds": 0.9400000000000001
+    },
+    {
+      "seed": 71000,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.4132990063108,
+      "longest_grasp_seconds": 1.12
+    },
+    {
+      "seed": 71001,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 295,
+      "max_door_deg": 23.36867626381221,
+      "longest_grasp_seconds": 1.22
+    },
+    {
+      "seed": 71002,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.349075080778455,
+      "longest_grasp_seconds": 1.06
+    },
+    {
+      "seed": 71003,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.332777792659677,
+      "longest_grasp_seconds": 0.96
+    },
+    {
+      "seed": 71004,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.369798162731403,
+      "longest_grasp_seconds": 1.1
+    },
+    {
+      "seed": 71005,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.3474462296251,
+      "longest_grasp_seconds": 1.42
+    },
+    {
+      "seed": 71006,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 295,
+      "max_door_deg": 23.338079068562763,
+      "longest_grasp_seconds": 1.34
+    },
+    {
+      "seed": 71007,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.332746463526775,
+      "longest_grasp_seconds": 1.52
+    },
+    {
+      "seed": 71008,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.34624202385628,
+      "longest_grasp_seconds": 1.42
+    },
+    {
+      "seed": 71009,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.34920328742319,
+      "longest_grasp_seconds": 1.1
+    },
+    {
+      "seed": 71010,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.323212004428193,
+      "longest_grasp_seconds": 1.16
+    },
+    {
+      "seed": 71011,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 305,
+      "max_door_deg": 23.384184107642625,
+      "longest_grasp_seconds": 1.1400000000000001
+    },
+    {
+      "seed": 71012,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.382295880031734,
+      "longest_grasp_seconds": 1.78
+    },
+    {
+      "seed": 71013,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.357075641400144,
+      "longest_grasp_seconds": 2.5
+    },
+    {
+      "seed": 71014,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 306,
+      "max_door_deg": 23.415733702831222,
+      "longest_grasp_seconds": 1.04
+    },
+    {
+      "seed": 71015,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.356084692534402,
+      "longest_grasp_seconds": 1.36
+    },
+    {
+      "seed": 71016,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.321791934010555,
+      "longest_grasp_seconds": 0.96
+    },
+    {
+      "seed": 71017,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 304,
+      "max_door_deg": 23.35281137960444,
+      "longest_grasp_seconds": 0.9
+    },
+    {
+      "seed": 71018,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.33804726904222,
+      "longest_grasp_seconds": 1.1400000000000001
+    },
+    {
+      "seed": 71019,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 295,
+      "max_door_deg": 23.34959003816073,
+      "longest_grasp_seconds": 1.16
+    },
+    {
+      "seed": 71020,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 296,
+      "max_door_deg": 23.378188871855382,
+      "longest_grasp_seconds": 1.24
+    },
+    {
+      "seed": 71021,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.404235609242836,
+      "longest_grasp_seconds": 0.9400000000000001
+    },
+    {
+      "seed": 71022,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.360315355272707,
+      "longest_grasp_seconds": 1.24
+    },
+    {
+      "seed": 71023,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 305,
+      "max_door_deg": 23.348775722737642,
+      "longest_grasp_seconds": 1.36
+    },
+    {
+      "seed": 71024,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.362088595672077,
+      "longest_grasp_seconds": 0.98
+    },
+    {
+      "seed": 71025,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.38258717678367,
+      "longest_grasp_seconds": 1.3
+    },
+    {
+      "seed": 71026,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 296,
+      "max_door_deg": 23.339967619473406,
+      "longest_grasp_seconds": 1.3
+    },
+    {
+      "seed": 71027,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.35583127266049,
+      "longest_grasp_seconds": 1.3800000000000001
+    },
+    {
+      "seed": 71028,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.331193523769404,
+      "longest_grasp_seconds": 1.26
+    },
+    {
+      "seed": 71029,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.36207172340363,
+      "longest_grasp_seconds": 1.36
+    },
+    {
+      "seed": 71030,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.361890010881147,
+      "longest_grasp_seconds": 0.8200000000000001
+    },
+    {
+      "seed": 71031,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.35134040215888,
+      "longest_grasp_seconds": 0.86
+    },
+    {
+      "seed": 71032,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.32006367869083,
+      "longest_grasp_seconds": 1.8800000000000001
+    },
+    {
+      "seed": 71033,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.34355347693583,
+      "longest_grasp_seconds": 1.54
+    },
+    {
+      "seed": 71034,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.32472933035733,
+      "longest_grasp_seconds": 1.16
+    },
+    {
+      "seed": 71035,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.334544006419808,
+      "longest_grasp_seconds": 1.6400000000000001
+    },
+    {
+      "seed": 71036,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.33047957830124,
+      "longest_grasp_seconds": 0.98
+    },
+    {
+      "seed": 71037,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.345977199999897,
+      "longest_grasp_seconds": 0.8200000000000001
+    },
+    {
+      "seed": 71038,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.380771506252177,
+      "longest_grasp_seconds": 1.4000000000000001
+    },
+    {
+      "seed": 71039,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.336213569505663,
+      "longest_grasp_seconds": 0.8200000000000001
+    },
+    {
+      "seed": 71040,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.342030058094778,
+      "longest_grasp_seconds": 0.9
+    },
+    {
+      "seed": 71041,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 295,
+      "max_door_deg": 23.357112326020893,
+      "longest_grasp_seconds": 1.6
+    },
+    {
+      "seed": 71042,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.336996826058805,
+      "longest_grasp_seconds": 1.18
+    },
+    {
+      "seed": 71043,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.354235185723745,
+      "longest_grasp_seconds": 1.22
+    },
+    {
+      "seed": 71044,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.340469831713914,
+      "longest_grasp_seconds": 1.04
+    },
+    {
+      "seed": 71045,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.341606554243953,
+      "longest_grasp_seconds": 1.4000000000000001
+    },
+    {
+      "seed": 71046,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.35048840383761,
+      "longest_grasp_seconds": 1.22
+    },
+    {
+      "seed": 71047,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.301568733261092,
+      "longest_grasp_seconds": 1.06
+    },
+    {
+      "seed": 71048,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.36799820611883,
+      "longest_grasp_seconds": 0.8
+    },
+    {
+      "seed": 71049,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.32735209946176,
+      "longest_grasp_seconds": 1.62
+    },
+    {
+      "seed": 71050,
+      "success": false,
+      "grasp": true,
+      "press": true,
+      "failure": "excessive_penetration",
+      "steps": 272,
+      "max_door_deg": 13.062283269213916,
+      "longest_grasp_seconds": 0.66
+    },
+    {
+      "seed": 71051,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.389628176567136,
+      "longest_grasp_seconds": 0.86
+    },
+    {
+      "seed": 71052,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 292,
+      "max_door_deg": 23.33374540013011,
+      "longest_grasp_seconds": 1.26
+    },
+    {
+      "seed": 71053,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.332357334846094,
+      "longest_grasp_seconds": 1.5
+    },
+    {
+      "seed": 71054,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.371796973433735,
+      "longest_grasp_seconds": 1.3
+    },
+    {
+      "seed": 71055,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.371733748812872,
+      "longest_grasp_seconds": 1.54
+    },
+    {
+      "seed": 71056,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.338857916602304,
+      "longest_grasp_seconds": 0.84
+    },
+    {
+      "seed": 71057,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 304,
+      "max_door_deg": 23.354698454750718,
+      "longest_grasp_seconds": 1.24
+    },
+    {
+      "seed": 71058,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.332472343473274,
+      "longest_grasp_seconds": 1.44
+    },
+    {
+      "seed": 71059,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.331496074078,
+      "longest_grasp_seconds": 1.5
+    },
+    {
+      "seed": 71060,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 296,
+      "max_door_deg": 23.334241573864496,
+      "longest_grasp_seconds": 1.22
+    },
+    {
+      "seed": 71061,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 306,
+      "max_door_deg": 23.33540279423444,
+      "longest_grasp_seconds": 0.88
+    },
+    {
+      "seed": 71062,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.355864316963824,
+      "longest_grasp_seconds": 1.3
+    },
+    {
+      "seed": 71063,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.297225116079755,
+      "longest_grasp_seconds": 1.6
+    },
+    {
+      "seed": 71064,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 297,
+      "max_door_deg": 23.33685256048253,
+      "longest_grasp_seconds": 1.5
+    },
+    {
+      "seed": 71065,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.376790865156806,
+      "longest_grasp_seconds": 0.8
+    },
+    {
+      "seed": 71066,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 298,
+      "max_door_deg": 23.344134028861745,
+      "longest_grasp_seconds": 1.4000000000000001
+    },
+    {
+      "seed": 71067,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.373173450236372,
+      "longest_grasp_seconds": 0.88
+    },
+    {
+      "seed": 71068,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.35464421860926,
+      "longest_grasp_seconds": 0.9400000000000001
+    },
+    {
+      "seed": 71069,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 302,
+      "max_door_deg": 23.339067304343367,
+      "longest_grasp_seconds": 1.1400000000000001
+    },
+    {
+      "seed": 71070,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 295,
+      "max_door_deg": 23.335639873507393,
+      "longest_grasp_seconds": 0.76
+    },
+    {
+      "seed": 71071,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 304,
+      "max_door_deg": 23.38821062702476,
+      "longest_grasp_seconds": 1.02
+    },
+    {
+      "seed": 71072,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.32356831845697,
+      "longest_grasp_seconds": 0.9
+    },
+    {
+      "seed": 71073,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 303,
+      "max_door_deg": 23.352950060417353,
+      "longest_grasp_seconds": 1.06
+    },
+    {
+      "seed": 71074,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 299,
+      "max_door_deg": 23.355672925911755,
+      "longest_grasp_seconds": 0.72
+    },
+    {
+      "seed": 71075,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 294,
+      "max_door_deg": 23.326788647029854,
+      "longest_grasp_seconds": 0.84
+    },
+    {
+      "seed": 71076,
+      "success": false,
+      "grasp": true,
+      "press": true,
+      "failure": "excessive_penetration",
+      "steps": 276,
+      "max_door_deg": 12.96633676370922,
+      "longest_grasp_seconds": 1.22
+    },
+    {
+      "seed": 71077,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.35331458701085,
+      "longest_grasp_seconds": 1.5
+    },
+    {
+      "seed": 71078,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 300,
+      "max_door_deg": 23.391669891571958,
+      "longest_grasp_seconds": 0.86
+    },
+    {
+      "seed": 71079,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "failure": "",
+      "steps": 301,
+      "max_door_deg": 23.366941624181635,
+      "longest_grasp_seconds": 0.9
+    }
+  ]
+}

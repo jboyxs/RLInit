@@ -321,6 +321,79 @@ uv run --no-sync python -m unittest discover -s tests -p test_door_sac_direct.py
 
 支持原 SAC 的全部命令行参数，也可通过 `--n-envs` 开启并行采样。默认 `gradient_steps=1` 与原单环境脚本一致；并行时可显式传入 `--gradient-steps -1`，令每条采样经验对应一次更新。最终模型、最佳模型均保存独立任务标识，恢复评估无需旁边的 `config.json`。短跑仅验证训练流程，不代表已学会开门。
 
+### 纯 SAC 精细抓握实验
+
+同一入口增加 `--precision-grasp`，使用独立的 `door_sac_grasp_env.py`。默认从带噪声的 home 姿态开始，由 SAC 输出全部八维动作；不调用示范、行为克隆或专家轨迹。该选项把两侧指垫误差等信息加入观测（78 维），加入居中、两侧距离不平衡、过早闭合的成本及双侧接触奖励。动作直接使用原版七个关节增量和一个夹爪命令，不再按距离自动缩放动作或平滑夹爪命令。任务成功与物理失败条件沿用原版。
+
+策略网络直接产生关节动作；已删除笛卡尔动作、雅可比映射和目标位姿伺服。把手几何只用于观测、奖励及成功判定，不生成关节动作。原版 MuJoCo 执行器和动作限幅保留。新任务标识为 `fixed_base_door_precision_joint_sac_v2`；旧精细任务检查点的动作处理不同，不能用于新任务的评估、续训或初始化，新训练必须使用独立目录和经验池。
+
+精细任务的奖励系数集中在 `GraspTrainingConfig`，与原版直接奖励参数分开保存。`--orientation-cost-weight` 可额外启用全局姿态误差成本。检查点保存完整配置，评估自动恢复；改变奖励配置后应使用新的实验目录。各版本回报不可直接比较。
+
+`--grasp-reward-profile strong` 加强距离、对齐、双侧接触、抓握和后续动作的信号，并相应提高成功奖励。接触/抓握/压把手奖励按对齐与居中质量加权，建立对齐的双侧接触后逐渐撤销过早闭合成本；反向扭把手会扣分。抓握子任务不奖励压把手和开门，避免用偏斜碰撞代替正确夹持。`--init-from CHECKPOINT` 可迁移前一轮在线 SAC 的网络权重，使用空经验池与新的优化器；物理、观测与动作映射必须一致。它用于奖励调整或目标阶段切换，不会加载示范，也不会复用旧奖励的经验池。完全续训使用 `--resume` 配合同一实验的经验池，自动恢复已保存的精细任务参数。
+
+`opening` 奖励配置进一步加强压把手/拉门激励，并将所有奖励统一乘以 0.1。改变奖励单位时可用 `--init-critic-scale` 调整迁移时的初始 Q 输出；Actor 权重不变。位置/姿态已经满足闭合准备条件时，强奖励配置也会撤销过早闭合成本，避免策略停在张开的预抓取姿态。
+
+`joint` 配置在 `strong` 基础上增加 `0.5 × 闭合准备度 × (夹爪动作 + 1) / 2`，鼓励在居中且对齐后尝试闭合。它只计算奖励，不替换网络动作。可选 `--gripper-exploration-std 0.8` 在训练中加入与任务几何无关、时间相关的夹爪探索噪声；七个关节动作不叠加该噪声，独立评估不使用探索噪声。两项均属于待验证实验，不代表已学会开门。
+
+`safe_opening` 配置在 `joint` 基础上增加三项有界软惩罚：关节目标与实际位置的最大偏差超过 0.05 rad 后逐渐惩罚（0.20 rad 时为 −2）；接触穿透超过原失败阈值的 20% 后逐渐惩罚（到达阈值时为 −2）；把手角超过 1.2 rad 后惩罚过度按压（1.4 rad 时为 −0.5，最多 −1）。这些只进入奖励，不限制或替换策略动作，不修改物理和成功/失败条件。旧配置的三个系数均为零。该配置用于验证后半程抓握失稳问题，尚无完整开门成功率保证。
+
+`--contact-observation log` 将两项接触力输入从 `F/20` 改为 `log(1+F/20)`，减小少数大接触力对输入尺度的影响，原始力仍用于物理、奖励和日志。配置随模型保存。在线 SAC 权重迁移时，默认要求力输入编码一致；显式 `--init-without-force-inputs` 可清零 Actor、双 Critic 及其目标网络第一层的两列力输入权重，再学习新的编码。零接触时的网络输出保持一致。该选项仅接受本版直接关节动作 SAC 模型，不接受历史控制器模型。
+
+可选的自身状态课程：`tests/collect_door_sac_states.py` 运行已训练的直接关节动作 SAC，保存它实际到达过的、接近且对齐的物理状态；不构造理想姿态，也不提供专家动作。`--training-reset-bank PATH --training-reset-probability 0.7` 将 70% 的训练回合从这些状态开始，其余从 home 开始。执行器命令、上一动作和计时仅作为恢复完整状态的数据，不作为模仿学习目标；后续动作和更新仍完全来自 SAC。训练起点来源写入配置及模型的独立元数据。周期评估、独立评估和渲染始终使用另一个未启用状态库的环境，从原版 noisy home 开始，评估不需要状态库文件。续训若要继续使用状态库，需要再次传入该训练选项。阶段成功不能证明学会从 home 开门。
+
+收集器的 `--phase press` 只保存策略已经实际握住且压下把手的状态。训练时可用 `--expand-training-reset-bank` 动态保存同一在线学习器产生的安全开门进展；它只记录状态，不修改动作。训练的中途起点有一半按开门角度分组从已访问的各段进展均匀采样，另一半仍使用初始状态库；home 起点比例保持不变。状态库保留较早阶段，避免只练习终点附近。进展状态排除失败/终止状态、任何成功计时、接近终点的门角度和即将超时的回合；最终保存各进程的状态库及其来源。评估始终不启用动态状态库。
+
+`--init-from` 可配合 `--replay-buffer` 保留自身在线经验，经验池旁的 `config.json` 必须声明同一直接关节动作 SAC 任务，且物理、观测、奖励和阶段配置与新任务完全一致；含示范标记的记录会被拒绝。精细任务的直接奖励不依赖折扣因子，因此初始化网络或复用这些经验时允许改变 SAC 的 `gamma`；势函数差分任务没有放开这一条件。迁移网络的奖励可不同，但复用经验的奖励必须与目标任务一致，不会把旧奖励错误地混入新任务。
+
+`--policy-warmup-steps N` 在更新网络前，使用当前初始化后的 SAC 策略随机采样动作，收集自己的在线经验，不更新网络，也不提供动作示范。它用于迁移后先保留一批当前策略的真实轨迹，数量计入 `--timesteps`，默认关闭。预热不叠加额外动作噪声；额外探索噪声在正常 SAC 训练阶段生效。
+
+`--n-steps 3` 启用 SB3 自带的多步 SAC 回报（默认 1），用于让成功或失败的奖励更快传到较早的动作。只使用均匀在线回放，与成功回合重采样互斥。载入同任务的自身单步经验时，保留原始动作、观测、奖励及并行/环形存储次序，由 SB3 在采样时计算多步回报；在回合终止、超时和最新未结束的轨迹边界停止累计，避免跨回合拼接。模型、回放和实际步数配置随检查点保存；不修改 SAC 损失公式，也不引入示范。
+
+可选 `--success-replay-fraction 0.25` 只用于完整任务、全程 home 起点的精细 SAC：每批最多 25% 的转移来自学习器自己成功的完整回合，其余均匀采样。SAC 的 Actor/Critic 损失不变，没有行为克隆或动作标签拟合；不是加载专家示范。已有普通经验池按原版成功计时、门角度及双侧接触恢复成功回合标记，超时不算成功，环形覆盖会清除旧标记。参数上限为 0.5，默认关闭；带中途状态课程或示范标记的经验池不允许经此路径标记为 home 成功。独立评估只使用保存的策略网络，不需要经验池。
+
+```powershell
+uv run --no-sync python tests/collect_door_sac_states.py runs/door_sac_joint_v2_full/inspect_50000.zip --output runs/door_sac_joint_v2_approach_bank.npz --episodes 30
+```
+
+`--training-stage grasp` 把训练目标设为两侧指垫各距对应表面中心不超过 3 cm、对齐度至少 0.9、保持双侧接触 0.2 秒；`press` 要求双侧接触并将把手压到 1.1 rad，保持 0.1 秒。强奖励的压把手目标还要求对齐度至少 0.85、两侧表面误差各不超过 4 cm。这两个子任务每回合仍从 home 开始，`stage_success_rate` 单独记录阶段成功，`success_rate` 始终不把它们算作完整开门。最终必须用 `full` 阶段模型独立验证原版开门条件。阶段间可使用 `--init-from` 迁移 SAC 权重；评估子任务模型时加 `--full-task` 可强制使用原版开门成功条件。
+
+`reach` 是张开夹爪的精确接近子任务：指垫中心到把手中心不超过 2 cm、对齐度至少 0.98、夹爪开口至少 6 cm，保持 0.1 秒。它使用中心距离和旋转角成本，不把接触或压把手计作接近成功。
+
+```powershell
+# 从随机策略开始的在线 SAC，四个物理进程，每收集四步更新一次。
+uv run --no-sync python tests/trainp2_sac_direct.py --precision-grasp --n-envs 4 --torch-threads 1 --action-scale 0.01 --learning-starts 5000 --gradient-steps 1 --ent-coef auto_0.05 --buffer-size 300000 --timesteps 200000 --episodes 5 --output-dir runs/door_sac_precision --save-replay-buffer
+# 加强奖励及全局姿态成本，仍直接输出关节增量，从随机策略开始。
+uv run --no-sync python tests/trainp2_sac_direct.py --precision-grasp --grasp-reward-profile strong --orientation-cost-weight 0.5 --n-envs 4 --action-scale 0.01 --learning-starts 5000 --gradient-steps 1 --ent-coef auto_0.05 --buffer-size 300000 --timesteps 200000 --episodes 5 --output-dir runs/door_sac_joint_v2 --save-replay-buffer
+# 续训需要保留同样的环境选项；经验池必须来自同一在线实验。
+uv run --no-sync python tests/trainp2_sac_direct.py --precision-grasp --n-envs 4 --action-scale 0.01 --learning-starts 5000 --gradient-steps 1 --ent-coef auto_0.05 --buffer-size 300000 --resume runs/door_sac_precision/sac_door.zip --replay-buffer runs/door_sac_precision/replay_buffer.pkl --timesteps 200000 --output-dir runs/door_sac_precision --save-replay-buffer
+# 独立评估并记录两侧误差、闭合命令、把手/门角度和接触力。
+uv run --no-sync python tests/inspect_door_sac_direct.py runs/door_sac_precision/best/best_model.zip --output-dir runs/door_sac_precision/inspection --episodes 10 --seed 20000 --frames
+# 实时观看；环境配置来自检查点，无需再次指定精细任务选项。
+uv run --no-sync python tests/trainp2_sac_direct.py --evaluate runs/door_sac_precision/best/best_model.zip --episodes 10 --seed 20000 --render
+```
+
+精细任务以完整/阶段成功率为先；完整任务随后比较压把手率、保持接触时的开门进展、连续抓握时间和回报，保存 `best/best_model.zip`。`eval/task_evaluations.json` 记录任务指标，`latest_model.zip` 保存最近评估时的模型，每两万步保存一次 `latest_replay_buffer.pkl`；正常结束另存最终模型和经验池。抓握率仅表示回合内曾发生双侧接触，最终是否学会以独立 home 起点开门评估为准。
+
+历史实验 `runs/door_sac_trained/sac_door.zip` 使用了雅可比位姿控制器和理想抓取位姿先验，其 39/40 开门结果不符合“策略直接学习关节动作”的目标，不能作为本任务完成的证据。保留文件仅作历史记录；当前入口拒绝加载该旧任务模型。
+
+已验证的直接关节动作模型位于 `runs/door_sac_joint_v2_verified/sac_door.zip`。冻结多步回报阶段第 140000 步的检查点后，在未参与训练和选模的种子 70000–70019、71000–71079 上独立评估：完整开门 **97/100**，抓握和压把手均 **100/100**，三次失败均为原版穿透失败。评估从原版带噪声的 home 开始，确定性网络动作直接进入原版关节/夹爪映射，保留门角至少 0.30 rad、双侧抓握并保持 0.30 秒的成功条件。
+
+训练瓶颈、实验对比和最终配置见 [纯 SAC 开门训练总结](docs/SAC_DOOR_TRAINING_SUMMARY.md)。
+
+该模型使用 `joint` 奖励、全局姿态误差成本 0.5、对数接触力观测、SB3 SAC 的三步回报、gamma 0.995、固定熵系数 0.005、学习率 0.0001，以及四个环境下每条采样转移一次更新。网络为默认双层 256 ReLU。它继承此前纯在线 SAC 的网络与同任务自身经验，完整训练过程包含前期采样；140000 只表示多步回报阶段的检查点步数。此实验始终从 home 训练，未使用模仿学习、动作控制辅助、中途起点课程或成功回合重采样。`safe_opening` 软惩罚实验是另一组对照，未用于该成功模型。后期继续训练曾退化，因此复现结果应使用上述固定模型。
+
+`runs/door_sac_joint_v2_verified/evaluation.json` 汇总全部 100 回合，两个原始报告、模型哈希、训练来源配置和实际开门录像 `opening.gif` 保存在同一目录。该目录内的固定模型及验证材料随代码发布；`runs/` 下其余原始训练输出和大经验池按项目规则留在本地。
+
+```powershell
+# 观看已验证模型从原始 home 完成开门；CPU 推理与独立评估一致。
+uv run --no-sync python tests/trainp2_sac_direct.py --evaluate runs/door_sac_joint_v2_verified/sac_door.zip --model models/door_scene.xml --episodes 1 --seed 70000 --device cpu --render
+# 独立复现两批测试，模型不需要任何经验池或状态库文件。
+uv run --no-sync python tests/trainp2_sac_direct.py --evaluate runs/door_sac_joint_v2_verified/sac_door.zip --model models/door_scene.xml --episodes 20 --seed 70000 --device cpu
+uv run --no-sync python tests/trainp2_sac_direct.py --evaluate runs/door_sac_joint_v2_verified/sac_door.zip --model models/door_scene.xml --episodes 80 --seed 71000 --device cpu
+# 使用本地保留的自身在线权重和经验，重跑该多步回报阶段；最佳模型由周期评估选取。
+uv run --no-sync python tests/trainp2_sac_direct.py --precision-grasp --grasp-reward-profile joint --orientation-cost-weight 0.5 --contact-observation log --init-from runs/door_sac_joint_v2_multistep_source/model.zip --replay-buffer runs/door_sac_joint_v2_multistep_source/replay_buffer.pkl --gripper-exploration-std 0.3 --action-scale 0.01 --initial-noise 0.02 --max-steps 1000 --timesteps 500000 --n-envs 4 --n-steps 3 --learning-rate 0.0001 --buffer-size 300000 --batch-size 256 --learning-starts 0 --gradient-steps -1 --gamma 0.995 --ent-coef 0.005 --eval-freq 10000 --episodes 5 --seed 67 --device cuda --save-replay-buffer --output-dir runs/door_sac_joint_v2_multistep_repeat
+```
+
 ### 使用多个进程并行采样 SAC
 
 `tests/trainp2_sac_parallel.py` 使用 `SubprocVecEnv` 为每个环境启动独立进程，默认 `--n-envs 4`。多个 MuJoCo 环境并行采样，共用主进程的一套 SAC 网络和经验池；网络结构与单环境版相同。Windows 使用 `spawn`，脚本带主入口保护，可直接运行；其他 Python 脚本调用 `train()` 时也应放在 `if __name__ == "__main__":` 内。

@@ -1,0 +1,38 @@
+{
+  "task": "fixed_base_door_precision_joint_sac_v2",
+  "checkpoint_sha256": "4892e3611a15f3b0091c2bdc060c0b70ed16b9cb33c2e793e0a20f768c26005d",
+  "source_checkpoint": "runs\\door_sac_joint_v2_multistep\\candidate_for_heldout.zip",
+  "new_stage_steps": 140000,
+  "training_kind": "online SAC, uniform SB3 3-step returns, own previous online weights and experience",
+  "imitation": false,
+  "analytic_action_controller": false,
+  "training_reset_bank": null,
+  "evaluation_reset_origin": "home",
+  "original_success_and_failure_rules": true,
+  "heldout_report": "evaluation.json",
+  "heldout_seeds": [
+    [
+      70000,
+      70019
+    ],
+    [
+      71000,
+      71079
+    ]
+  ],
+  "episodes": 100,
+  "successes": 97,
+  "success_rate": 0.97,
+  "video": "opening.gif",
+  "source_sha256": {
+    "tests/trainp2_sac.py": "3aea9c53183538811febd5105dbb6d068af55592d9ea7326a137efa480ee1100",
+    "tests/trainp2_sac_direct.py": "e3a29ec9e505972e495ff07ce47a46e3a67cf50fe65660d80e83113651362dde",
+    "src/rlinit/algorithmhand/door_env.py": "a0a2ce23a129f6a983a8c16ad550aabbddd3c7b162eff444886db2880d56e717",
+    "src/rlinit/algorithmhand/door_direct_env.py": "b7703abdc64c938ad1685fadb69166e6a30ad70ea5da9b4df1fb2a4ce9f3cdaa",
+    "src/rlinit/algorithmhand/door_sac_grasp_env.py": "60cb0344b02ae64c14b99646428661429ddce1610ce47f8c2c1f7c415ec560a8",
+    "src/rlinit/algorithmhand/door_sac_replay.py": "fa4d85f3dac43ab1da3a1a631f3a8769b2cb38272c524500333eddffb012d48d",
+    "src/rlinit/algorithmhand/door_sac_callback.py": "5360e9baca18e78ce5cf8252cfbe5972001aa590a7f4c55e2e3e8bed47a2e6f2",
+    "models/door_scene.xml": "d0c46e0a5b585001d037df82d95bfba53e7527f2de53ad8a92f5691b1f928221"
+  },
+  "verified_at": "2026-10-19T11:07:57.281806+00:00"
+}
