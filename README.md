@@ -394,6 +394,31 @@ uv run --no-sync python tests/trainp2_sac_direct.py --evaluate runs/door_sac_joi
 uv run --no-sync python tests/trainp2_sac_direct.py --precision-grasp --grasp-reward-profile joint --orientation-cost-weight 0.5 --contact-observation log --init-from runs/door_sac_joint_v2_multistep_source/model.zip --replay-buffer runs/door_sac_joint_v2_multistep_source/replay_buffer.pkl --gripper-exploration-std 0.3 --action-scale 0.01 --initial-noise 0.02 --max-steps 1000 --timesteps 500000 --n-envs 4 --n-steps 3 --learning-rate 0.0001 --buffer-size 300000 --batch-size 256 --learning-starts 0 --gradient-steps -1 --gamma 0.995 --ent-coef 0.005 --eval-freq 10000 --episodes 5 --seed 67 --device cuda --save-replay-buffer --output-dir runs/door_sac_joint_v2_multistep_repeat
 ```
 
+### 固定配方的独立 SAC 开门入口
+
+新增 `tests/train_sac_open.py` 和 `src/rlinit/algorithmhand/door_sac_open_env.py`，把成功实验固化为独立的完整任务入口，不调用旧训练脚本。新环境保留原版物理和关节动作，单独定义 78 维观测及成功实验的 `joint` 奖励；不包含子任务、状态库课程或其他实验奖励分支。共同使用已验证的成功率评估回调。
+
+默认训练参数为：三步回报、gamma 0.995、学习率 0.0001、固定熵系数 0.005、batch 256、经验池 300000、四个并行环境、每条转移更新一次、双层 256 ReLU、夹爪训练噪声标准差 0.3、关节步幅 0.01。奖励系数集中修改新环境的 `OpenRewardConfig`，SAC 参数集中在新入口的 `SACOpenSettings`。已有模型的评估与续训恢复其保存配置。
+
+不传模型时从随机网络开始，前 5000 条转移用于随机探索；不会隐式加载已验证模型。历史 97/100 是继承前期纯在线权重和经验后得到的结果，尚不能承诺从零使用该配方就能复现相同成功率。种子、依赖版本、配置、代码及输入文件哈希会写入输出目录。固定种子方便比较，跨硬件/依赖版本不保证逐位一致。
+
+```powershell
+# 从零训练；默认 50 万步，此例增加到 100 万步。
+uv run --no-sync python tests/train_sac_open.py --timesteps 1000000 --output-dir runs/door_sac_open_scratch
+# 使用本地保留的自身在线模型与经验，重跑当时奏效的多步回报阶段。
+uv run --no-sync python tests/train_sac_open.py --init-from runs/door_sac_joint_v2_multistep_source/model.zip --replay-buffer runs/door_sac_joint_v2_multistep_source/replay_buffer.pkl --timesteps 500000 --output-dir runs/door_sac_open_initialized
+# 恢复新入口的网络、优化器和经验池，追加训练；并行环境数量应与经验池一致。
+uv run --no-sync python tests/train_sac_open.py --resume runs/door_sac_open_scratch/final_model.zip --replay-buffer runs/door_sac_open_scratch/replay_buffer.pkl --timesteps 200000 --output-dir runs/door_sac_open_resumed
+# 观看本次训练选出的最佳模型。
+uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_open_scratch/best/best_model.zip --seed 70000 --episodes 1 --render
+# 也可直接评估仓库中的历史成功模型；新环境已在同样 20 个种子上复核为 19/20。
+uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_joint_v2_verified/sac_door.zip --seed 70000 --episodes 20
+# 短跑集成测试：真实 SAC 更新、保存、初始化、经验池和续训，以及新旧环境一致性。
+uv run --no-sync python -m unittest discover -s tests -p test_door_sac_open.py -v
+```
+
+每次训练使用新的空输出目录，防止覆盖模型。保存 `final_model.zip`、`best/best_model.zip`、`latest_model.zip`、`replay_buffer.pkl`、`config.json`、周期评估记录及 `evaluation.json`；最后一项评估选中的最佳模型，而非默认选择训练末尾模型。`--no-save-replay` 可关闭经验池保存以节省空间。续训恢复网络、优化器和经验池，仿真环境重新从 home 开始，不等价于保存全部仿真及随机数状态后的逐步精确恢复。评估只需模型与项目代码/场景，无需经验池。
+
 ### 使用多个进程并行采样 SAC
 
 `tests/trainp2_sac_parallel.py` 使用 `SubprocVecEnv` 为每个环境启动独立进程，默认 `--n-envs 4`。多个 MuJoCo 环境并行采样，共用主进程的一套 SAC 网络和经验池；网络结构与单环境版相同。Windows 使用 `spawn`，脚本带主入口保护，可直接运行；其他 Python 脚本调用 `train()` 时也应放在 `if __name__ == "__main__":` 内。
