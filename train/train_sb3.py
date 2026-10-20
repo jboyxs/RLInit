@@ -1,15 +1,31 @@
-"""Train/evaluate the first reaching task using Stable-Baselines3 PPO."""
-
+"""Train/evaluate the shared ReachEnv using Stable-Baselines3 PPO."""
+import argparse
 import json
 from pathlib import Path
-
+import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
+from rlinit.algorithmhand.reach_env import DEFAULT_MODEL, ReachEnv
 
-from .reach_env import DEFAULT_MODEL, ReachEnv
-from .device import resolve_device
-from .evaluation import final_eval_seed
+def resolve_device(device="auto"):
+    """Auto prefers CUDA; explicit CUDA fails clearly when unavailable."""
+    if str(device) == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    selected = torch.device(device)
+    if selected.type not in ("cpu", "cuda"):
+        raise ValueError("device 必须是 auto、cpu 或 cuda（可指定 cuda:0）")
+    if selected.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA 不可用：请安装 CUDA 版 PyTorch 并检查 NVIDIA 驱动；或使用 --device cpu")
+    return selected
+
+
+FINAL_EVAL_SEED_OFFSET = 20_000
+
+
+def final_eval_seed(training_seed):
+    """Return the first episode seed for every trainer's final evaluation."""
+    return training_seed + FINAL_EVAL_SEED_OFFSET
 
 
 def train_ppo(
@@ -100,3 +116,27 @@ def evaluate_ppo(checkpoint, episodes=20, seed=10_000, model_path=DEFAULT_MODEL,
         }
     finally:
         env.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--timesteps", type=int, default=300_000)
+    parser.add_argument("--output-dir", type=Path, default=Path("runs/reach_ppo"))
+    parser.add_argument("--seed", type=int, default=0,
+                        help="Training seed; final evaluation starts at seed + 20000. In evaluation mode, the first episode seed.")
+    parser.add_argument("--model", type=Path, default=DEFAULT_MODEL)
+    parser.add_argument("--n-steps", type=int, default=2048)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--evaluate", type=Path, help="Evaluate a saved .zip instead of training")
+    parser.add_argument("--episodes", type=int, default=20)
+    parser.add_argument("--render", action="store_true", help="Show training or evaluation in the MuJoCo viewer")
+    parser.add_argument("--device", default="auto", choices=("auto", "cpu", "cuda"))
+    args = parser.parse_args()
+    if args.evaluate:
+        print(json.dumps(evaluate_ppo(args.evaluate, args.episodes, args.seed, args.model, args.render, device=args.device), indent=2))
+    else:
+        train_ppo(args.timesteps, args.output_dir, args.seed, args.model, args.n_steps, args.batch_size, render=args.render, device=args.device)
+
+
+if __name__ == "__main__":
+    main()

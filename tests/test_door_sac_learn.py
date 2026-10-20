@@ -10,9 +10,9 @@ from unittest.mock import patch
 import numpy as np
 from stable_baselines3.common.buffers import NStepReplayBuffer
 
-from rlinit.algorithmhand.door_sac_open_env import OpenRewardConfig, SACOpenDoorEnv, default_door_config
+from rlinit.algorithmhand.door_sac_learn_env import OpenRewardConfig, SACOpenDoorEnv, default_door_config
 from rlinit.algorithmhand.door_sac_learn_env import LearnRewardConfig, SACLearnDoorEnv
-from train_sac_learn import SACLearnSettings, load_agent, train, train_two_phases
+from train.train_sac_staged import SACLearnSettings, load_agent, train
 
 
 class SACLearnTests(unittest.TestCase):
@@ -167,25 +167,6 @@ class SACLearnTests(unittest.TestCase):
             metadata = json.loads((Path(folder) / "progress/config.json").read_text())
             self.assertEqual(metadata["replay_conversion"]["relabelled_transitions"], 8)
 
-    def test_single_entry_runs_both_phases_from_random_weights(self):
-        recipe = replace(SACLearnSettings(), n_steps=3, buffer_size=64, batch_size=4,
-                         scratch_learning_starts=2)
-        with tempfile.TemporaryDirectory() as folder:
-            checkpoint = train_two_phases(output_dir=folder, total_timesteps=12,
-                press_progress_after=8, settings=recipe, n_envs=1, device="cpu",
-                env_config=replace(default_door_config(), max_steps=4), eval_freq=4, eval_episodes=1)
-            root = Path(folder)
-            self.assertTrue((root / "phase1/initial_random_model.zip").is_file())
-            manifest = json.loads((root / "pipeline.json").read_text())
-            self.assertFalse(manifest["external_pretraining"])
-            self.assertEqual(manifest["actual_timesteps"], 12)
-            second = json.loads((root / "phase2/config.json").read_text())
-            self.assertEqual(second["source_checkpoint_timesteps"], 8)
-            self.assertEqual(second["replay_conversion"]["relabelled_transitions"], 8)
-            agent, env = load_agent(checkpoint)
-            self.addCleanup(env.close)
-            self.assertEqual(agent.num_timesteps, 12)
-            self.assertTrue(env.reward_config.press_progress_only)
 
 
 if __name__ == "__main__":

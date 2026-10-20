@@ -5,7 +5,7 @@ import unittest
 import mujoco
 import numpy as np
 
-from rlinit.algorithmhand.door_env import DEFAULT_MODEL, fixed_base_model
+from rlinit.algorithmhand.door_sac_learn_env import DEFAULT_MODEL, fixed_base_model
 
 
 class DoorModelTests(unittest.TestCase):

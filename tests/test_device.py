@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from rlinit.algorithmhand.device import resolve_device
+from rlinit.algorithmhand.PPOhand import resolve_device
 
 
 class DeviceTests(unittest.TestCase):

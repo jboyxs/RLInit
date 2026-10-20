@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-import train_sac_staged as staged
+import train.train_sac_staged as staged
 
 
 def model_file(path, timesteps):

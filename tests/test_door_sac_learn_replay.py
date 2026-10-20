@@ -8,7 +8,7 @@ import numpy as np
 from stable_baselines3.common.buffers import NStepReplayBuffer, ReplayBuffer
 
 from rlinit.algorithmhand.door_sac_learn_env import LearnRewardConfig, SACLearnDoorEnv
-from rlinit.algorithmhand.door_sac_learn_replay import (
+from train.train_sac_staged import (
     close_resume_segments, press_progress_delta, relabel_press_progress,
 )
 

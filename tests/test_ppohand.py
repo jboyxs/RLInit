@@ -10,7 +10,7 @@ import torch
 
 from rlinit.algorithmhand.PPOhand import PPO, compute_gae
 from rlinit.algorithmhand.reach_env import ReachEnv
-from train_hand import load_agent, save_agent
+from train.train_hand import load_agent, save_agent
 
 
 def make_rollout(agent, count=9):

@@ -1,6 +1,6 @@
 """使用 PPOhand.py 训练或评估固定底盘 TidyBot 到达任务。
 
-在仓库根目录同步 cpu/cuda extra 后运行：uv run --no-sync python tests/train_hand.py --render
+在仓库根目录同步 cpu/cuda extra 后运行：uv run --no-sync python train/train_hand.py --render
 训练结束后自动评估 10 回合，起始种子统一为训练 seed + 20000。
 """
 
@@ -13,7 +13,12 @@ import numpy as np
 import torch
 
 from rlinit.algorithmhand.PPOhand import PPO, checkpoint_hidden_depth
-from rlinit.algorithmhand.evaluation import final_eval_seed
+FINAL_EVAL_SEED_OFFSET = 20_000
+
+
+def final_eval_seed(training_seed):
+    """Return the first episode seed for every trainer's final evaluation."""
+    return training_seed + FINAL_EVAL_SEED_OFFSET
 from rlinit.algorithmhand.reach_env import DEFAULT_MODEL, ReachEnv
 
 
