@@ -1,0 +1,31 @@
+{
+  "paths": [
+    "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_learn_v5_press_progress\\diagnosis\\model_480000_932af089f8af.zip",
+    "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\phase2\\diagnosis\\selected_480000_749cce2111ce.zip"
+  ],
+  "sha256": [
+    "932af089f8afeef805bb1bd85367a7ab2c7762662fd80e10834d65db278d7a1b",
+    "749cce2111ce2ef347ec47956fe75f6a7ed79316f7aaa7f66c7585d5d644a9e0"
+  ],
+  "pytorch_states_equal": {
+    "pytorch_variables.pth": true,
+    "policy.pth": true,
+    "actor.optimizer.pth": true,
+    "critic.optimizer.pth": true
+  },
+  "counters": [
+    {
+      "num_timesteps": 480000,
+      "_n_updates": 474992
+    },
+    {
+      "num_timesteps": 480000,
+      "_n_updates": 474992
+    }
+  ],
+  "counters_equal": true,
+  "canonical_environment_equal": true,
+  "settings_equal": true,
+  "task_format_equal": true,
+  "passed": true
+}

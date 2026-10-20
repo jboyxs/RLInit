@@ -1,0 +1,6 @@
+# Checkpoints verify these XML files byte-for-byte, including line endings.
+/models/door_scene.xml text eol=lf
+/models/objects/door_lock_fixture.xml text eol=lf
+/models/stanford_tidybot/tidybot.xml text eol=crlf
+# Preserve the exact training snapshots used by the provenance audit.
+/runs/door_sac_staged_v1/source/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

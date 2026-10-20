@@ -1,0 +1,19 @@
+{
+  "checkpoint": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\phase2\\latest_model.zip",
+  "model_counter": 140000,
+  "algorithm": "stable_baselines3.sac.sac.SAC",
+  "observation_dim": 80,
+  "checks": {
+    "raw_action_dimension": true,
+    "original_step": true,
+    "original_actuator_control": true,
+    "original_action_scale": true,
+    "passive_door": true,
+    "original_noisy_home": true,
+    "handle_range_0_60": true,
+    "door_target_unchanged": true,
+    "grasp_hold_unchanged": true,
+    "penetration_limit_unchanged": true
+  },
+  "passed": true
+}

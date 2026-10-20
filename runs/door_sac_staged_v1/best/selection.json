@@ -1,0 +1,28 @@
+{
+  "timesteps": 480000,
+  "success_rate": 1.0,
+  "stage_success_rate": 1.0,
+  "training_stage": "full",
+  "evaluation_reset_origins": [
+    "home"
+  ],
+  "press_rate": 1.0,
+  "grasp_rate": 1.0,
+  "mean_return": 2310.901657,
+  "mean_length": 411.4,
+  "mean_distance_m": 0.035730392135064716,
+  "mean_minimum_distance_m": 0.0171788225161206,
+  "mean_final_alignment": 0.9610309639657235,
+  "mean_longest_grasp_steps": 42.4,
+  "mean_max_grasped_door_deg": 21.65476096493286,
+  "failures": 0,
+  "rank": [
+    1.0,
+    1.0,
+    1.0,
+    21.65476096493286,
+    42.4,
+    1.0,
+    2310.901657
+  ]
+}

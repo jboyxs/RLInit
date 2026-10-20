@@ -1,0 +1,26 @@
+{
+  "paths": [
+    "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_learn_v5_press_progress\\diagnosis\\model_150000_3648a5556a55.zip",
+    "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\phase2\\diagnosis\\model_150000_159f363f3486.zip"
+  ],
+  "all_pytorch_states_equal": {
+    "pytorch_variables.pth": true,
+    "policy.pth": true,
+    "actor.optimizer.pth": true,
+    "critic.optimizer.pth": true
+  },
+  "counters": [
+    {
+      "num_timesteps": 150000,
+      "_n_updates": 144992
+    },
+    {
+      "num_timesteps": 150000,
+      "_n_updates": 144992
+    }
+  ],
+  "counters_equal": true,
+  "evaluation_curves_equal": true,
+  "through": 150000,
+  "passed": true
+}

@@ -1,0 +1,26 @@
+{
+  "checks": {
+    "full_budget_finished": true,
+    "first_phase_from_random": true,
+    "own_periodic_model": true,
+    "own_periodic_replay": true,
+    "selected_from_this_run": true,
+    "selected_counter_consistent": true,
+    "completed_final_counter": true,
+    "training_sources_unchanged": true,
+    "sac_and_raw_eight_actions": true,
+    "original_home_only": true,
+    "independent_final_checkpoint": true,
+    "new_100_home_seeds": true,
+    "physical_interface_audit": true
+  },
+  "passed": true,
+  "checkpoint": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\best\\best_model.zip",
+  "checkpoint_sha256": "749cce2111ce2ef347ec47956fe75f6a7ed79316f7aaa7f66c7585d5d644a9e0",
+  "selected_timesteps": 480000,
+  "completed_timesteps": 500000,
+  "heldout": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\verification\\heldout_seed90000_100episodes.json",
+  "successes": 95,
+  "episodes": 100,
+  "physical_failures": 2
+}

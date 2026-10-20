@@ -1,0 +1,79 @@
+{
+  "episodes": 5,
+  "first_seed": 20000,
+  "deterministic": true,
+  "reset_origins": [
+    "home"
+  ],
+  "success_rate": 0.8,
+  "grasp_rate": 1.0,
+  "press_rate": 1.0,
+  "records": [
+    {
+      "seed": 20000,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "pressed_with_stable_grasp": true,
+      "failure": "",
+      "steps": 333,
+      "return_": 2360.5568125456116,
+      "final_door_deg": 21.35568472517166,
+      "success_hold_seconds": 0.3,
+      "reset_origin": "home"
+    },
+    {
+      "seed": 20001,
+      "success": false,
+      "grasp": true,
+      "press": true,
+      "pressed_with_stable_grasp": true,
+      "failure": "excessive_penetration",
+      "steps": 288,
+      "return_": -33.25831961876864,
+      "final_door_deg": 9.900891381118102,
+      "success_hold_seconds": 0.0,
+      "reset_origin": "home"
+    },
+    {
+      "seed": 20002,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "pressed_with_stable_grasp": true,
+      "failure": "",
+      "steps": 344,
+      "return_": 2332.5320816899894,
+      "final_door_deg": 19.2133299907234,
+      "success_hold_seconds": 0.3,
+      "reset_origin": "home"
+    },
+    {
+      "seed": 20003,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "pressed_with_stable_grasp": true,
+      "failure": "",
+      "steps": 338,
+      "return_": 2388.3810005102596,
+      "final_door_deg": 20.897418402060794,
+      "success_hold_seconds": 0.3,
+      "reset_origin": "home"
+    },
+    {
+      "seed": 20004,
+      "success": true,
+      "grasp": true,
+      "press": true,
+      "pressed_with_stable_grasp": true,
+      "failure": "",
+      "steps": 338,
+      "return_": 2395.4307022896596,
+      "final_door_deg": 21.472978514479383,
+      "success_hold_seconds": 0.3,
+      "reset_origin": "home"
+    }
+  ],
+  "checkpoint": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\best\\best_model.zip"
+}

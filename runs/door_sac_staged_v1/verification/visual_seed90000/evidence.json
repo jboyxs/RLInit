@@ -1,0 +1,36 @@
+{
+  "checkpoint": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\phase2\\diagnosis\\selected_480000_749cce2111ce.zip",
+  "sha256": "749cce2111ce2ef347ec47956fe75f6a7ed79316f7aaa7f66c7585d5d644a9e0",
+  "seed": 90000,
+  "first_stable_press_step": 217,
+  "deterministic": true,
+  "success": true,
+  "failure": "",
+  "events": [
+    {
+      "event": "Home",
+      "step": 0,
+      "handle_deg": 0.0,
+      "door_deg": 0.0
+    },
+    {
+      "event": "First bilateral grasp",
+      "step": 101,
+      "handle_deg": 4.0565130991771,
+      "door_deg": -0.047558960168043014
+    },
+    {
+      "event": "Handle first >=45 deg",
+      "step": 217,
+      "handle_deg": 45.43723359348905,
+      "door_deg": 2.211140782232731
+    },
+    {
+      "event": "Success",
+      "step": 325,
+      "handle_deg": 60.00145704260169,
+      "door_deg": 19.66712464213607
+    }
+  ],
+  "caption": "One selected successful diagnostic episode; not an estimate of success rate."
+}

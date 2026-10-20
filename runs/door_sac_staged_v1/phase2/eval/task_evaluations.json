@@ -1,0 +1,1122 @@
+[
+  {
+    "timesteps": 110000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 1.0,
+    "mean_return": -767.2111050000001,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.13154641769568776,
+    "mean_minimum_distance_m": 0.09044428395801718,
+    "mean_final_alignment": 0.8530000655920187,
+    "mean_longest_grasp_steps": 1.0,
+    "mean_max_grasped_door_deg": 0.0,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      -767.2111050000001
+    ]
+  },
+  {
+    "timesteps": 120000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.6,
+    "grasp_rate": 1.0,
+    "mean_return": -219.89296959999996,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.1546430767736286,
+    "mean_minimum_distance_m": 0.03643127850762231,
+    "mean_final_alignment": 0.7884868375017311,
+    "mean_longest_grasp_steps": 101.2,
+    "mean_max_grasped_door_deg": 2.6642628953947756,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      0.6,
+      2.6642628953947756,
+      101.2,
+      1.0,
+      -219.89296959999996
+    ]
+  },
+  {
+    "timesteps": 130000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.2,
+    "grasp_rate": 1.0,
+    "mean_return": -300.74292260000004,
+    "mean_length": 217.2,
+    "mean_distance_m": 0.17066301817587282,
+    "mean_minimum_distance_m": 0.084091824777799,
+    "mean_final_alignment": 0.37389577307374644,
+    "mean_longest_grasp_steps": 2.8,
+    "mean_max_grasped_door_deg": 0.0,
+    "failures": 5,
+    "rank": [
+      0.0,
+      0.0,
+      0.2,
+      0.0,
+      2.8,
+      1.0,
+      -300.74292260000004
+    ]
+  },
+  {
+    "timesteps": 140000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.8,
+    "grasp_rate": 0.8,
+    "mean_return": -291.08673500000003,
+    "mean_length": 658.0,
+    "mean_distance_m": 0.10585227953068463,
+    "mean_minimum_distance_m": 0.05594784575074452,
+    "mean_final_alignment": 0.7170627919984065,
+    "mean_longest_grasp_steps": 28.0,
+    "mean_max_grasped_door_deg": 0.7297354651324623,
+    "failures": 5,
+    "rank": [
+      0.0,
+      0.0,
+      0.8,
+      0.7297354651324623,
+      28.0,
+      0.8,
+      -291.08673500000003
+    ]
+  },
+  {
+    "timesteps": 150000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.4,
+    "grasp_rate": 1.0,
+    "mean_return": 20.8959884,
+    "mean_length": 675.6,
+    "mean_distance_m": 0.16682833733610095,
+    "mean_minimum_distance_m": 0.037895833600484666,
+    "mean_final_alignment": 0.7244236528465178,
+    "mean_longest_grasp_steps": 192.4,
+    "mean_max_grasped_door_deg": 0.6210937113259873,
+    "failures": 4,
+    "rank": [
+      0.0,
+      0.0,
+      0.4,
+      0.6210937113259873,
+      192.4,
+      1.0,
+      20.8959884
+    ]
+  },
+  {
+    "timesteps": 160000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": -65.36332680000001,
+    "mean_length": 884.2,
+    "mean_distance_m": 0.19619661607996727,
+    "mean_minimum_distance_m": 0.01996429214000146,
+    "mean_final_alignment": 0.651640954551552,
+    "mean_longest_grasp_steps": 160.8,
+    "mean_max_grasped_door_deg": 2.606427917805198,
+    "failures": 2,
+    "rank": [
+      0.0,
+      0.0,
+      1.0,
+      2.606427917805198,
+      160.8,
+      1.0,
+      -65.36332680000001
+    ]
+  },
+  {
+    "timesteps": 170000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 1.0,
+    "mean_return": 107.24734700000002,
+    "mean_length": 993.2,
+    "mean_distance_m": 0.11850770540912177,
+    "mean_minimum_distance_m": 0.036027687438748596,
+    "mean_final_alignment": 0.7577148118557607,
+    "mean_longest_grasp_steps": 149.6,
+    "mean_max_grasped_door_deg": 1.7297081004925696,
+    "failures": 1,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      1.7297081004925696,
+      149.6,
+      1.0,
+      107.24734700000002
+    ]
+  },
+  {
+    "timesteps": 180000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.2,
+    "grasp_rate": 1.0,
+    "mean_return": 66.0378322,
+    "mean_length": 966.0,
+    "mean_distance_m": 0.30195263536006334,
+    "mean_minimum_distance_m": 0.026878342580778907,
+    "mean_final_alignment": 0.7661334911189358,
+    "mean_longest_grasp_steps": 163.2,
+    "mean_max_grasped_door_deg": 2.1598740162548293,
+    "failures": 2,
+    "rank": [
+      0.0,
+      0.0,
+      0.2,
+      2.1598740162548293,
+      163.2,
+      1.0,
+      66.0378322
+    ]
+  },
+  {
+    "timesteps": 190000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 1.0,
+    "mean_return": 176.50460619999998,
+    "mean_length": 927.2,
+    "mean_distance_m": 0.24437185341028766,
+    "mean_minimum_distance_m": 0.02737435558981387,
+    "mean_final_alignment": 0.7389125578231035,
+    "mean_longest_grasp_steps": 294.4,
+    "mean_max_grasped_door_deg": 2.5428014774064964,
+    "failures": 2,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      2.5428014774064964,
+      294.4,
+      1.0,
+      176.50460619999998
+    ]
+  },
+  {
+    "timesteps": 200000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.6,
+    "grasp_rate": 1.0,
+    "mean_return": 511.4428386000001,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.10945719044411886,
+    "mean_minimum_distance_m": 0.025526673436251767,
+    "mean_final_alignment": 0.8812880404704055,
+    "mean_longest_grasp_steps": 502.0,
+    "mean_max_grasped_door_deg": 3.0412556979054024,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      0.6,
+      3.0412556979054024,
+      502.0,
+      1.0,
+      511.4428386000001
+    ]
+  },
+  {
+    "timesteps": 210000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 258.67413479999993,
+    "mean_length": 824.8,
+    "mean_distance_m": 0.05745264735038417,
+    "mean_minimum_distance_m": 0.02963791517185993,
+    "mean_final_alignment": 0.7754179463595049,
+    "mean_longest_grasp_steps": 151.8,
+    "mean_max_grasped_door_deg": 1.2850205360295381,
+    "failures": 5,
+    "rank": [
+      0.0,
+      0.0,
+      1.0,
+      1.2850205360295381,
+      151.8,
+      1.0,
+      258.67413479999993
+    ]
+  },
+  {
+    "timesteps": 220000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 0.0,
+    "mean_return": -196.00092320000002,
+    "mean_length": 82.2,
+    "mean_distance_m": 0.1588839226190416,
+    "mean_minimum_distance_m": 0.11240374354168525,
+    "mean_final_alignment": 0.06255524892956214,
+    "mean_longest_grasp_steps": 0.0,
+    "mean_max_grasped_door_deg": 0.0,
+    "failures": 5,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -196.00092320000002
+    ]
+  },
+  {
+    "timesteps": 230000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 0.6,
+    "mean_return": -93.8024952,
+    "mean_length": 928.8,
+    "mean_distance_m": 0.19979351850226915,
+    "mean_minimum_distance_m": 0.1035509319799062,
+    "mean_final_alignment": 0.6548844495300499,
+    "mean_longest_grasp_steps": 316.0,
+    "mean_max_grasped_door_deg": 1.1906020431409678,
+    "failures": 1,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      1.1906020431409678,
+      316.0,
+      0.6,
+      -93.8024952
+    ]
+  },
+  {
+    "timesteps": 240000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 1.0,
+    "mean_return": 707.0898790000001,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.06409741878358591,
+    "mean_minimum_distance_m": 0.03637069853137091,
+    "mean_final_alignment": 0.9229343154469933,
+    "mean_longest_grasp_steps": 335.2,
+    "mean_max_grasped_door_deg": 1.8300584995718088,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      1.8300584995718088,
+      335.2,
+      1.0,
+      707.0898790000001
+    ]
+  },
+  {
+    "timesteps": 250000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.8,
+    "grasp_rate": 1.0,
+    "mean_return": 1005.0708484,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.05194440389864474,
+    "mean_minimum_distance_m": 0.023038929423424025,
+    "mean_final_alignment": 0.9226538243847229,
+    "mean_longest_grasp_steps": 264.6,
+    "mean_max_grasped_door_deg": 3.1245540234995457,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      0.8,
+      3.1245540234995457,
+      264.6,
+      1.0,
+      1005.0708484
+    ]
+  },
+  {
+    "timesteps": 260000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.4,
+    "grasp_rate": 1.0,
+    "mean_return": 939.2316512,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.04678627075392831,
+    "mean_minimum_distance_m": 0.021830149141485223,
+    "mean_final_alignment": 0.9383495470914796,
+    "mean_longest_grasp_steps": 348.2,
+    "mean_max_grasped_door_deg": 2.0728052318263424,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      0.4,
+      2.0728052318263424,
+      348.2,
+      1.0,
+      939.2316512
+    ]
+  },
+  {
+    "timesteps": 270000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 1.0,
+    "mean_return": 944.6244882000001,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.04256747176976243,
+    "mean_minimum_distance_m": 0.018473471952396025,
+    "mean_final_alignment": 0.9592274521877439,
+    "mean_longest_grasp_steps": 267.6,
+    "mean_max_grasped_door_deg": 2.670657709006268,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      2.670657709006268,
+      267.6,
+      1.0,
+      944.6244882000001
+    ]
+  },
+  {
+    "timesteps": 280000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 1100.8197668,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.03641602649957689,
+    "mean_minimum_distance_m": 0.022501462604045203,
+    "mean_final_alignment": 0.9160500854690378,
+    "mean_longest_grasp_steps": 323.4,
+    "mean_max_grasped_door_deg": 5.5722314032125615,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      1.0,
+      5.5722314032125615,
+      323.4,
+      1.0,
+      1100.8197668
+    ]
+  },
+  {
+    "timesteps": 290000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 711.959536,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.11133287538901715,
+    "mean_minimum_distance_m": 0.02449233704678814,
+    "mean_final_alignment": 0.8892694685563161,
+    "mean_longest_grasp_steps": 211.0,
+    "mean_max_grasped_door_deg": 5.913673375849957,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      1.0,
+      5.913673375849957,
+      211.0,
+      1.0,
+      711.959536
+    ]
+  },
+  {
+    "timesteps": 300000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 341.0918716,
+    "mean_length": 1000.0,
+    "mean_distance_m": 0.5898040288598644,
+    "mean_minimum_distance_m": 0.0345739842908593,
+    "mean_final_alignment": 0.4895783810780404,
+    "mean_longest_grasp_steps": 329.8,
+    "mean_max_grasped_door_deg": 1.933167792989875,
+    "failures": 0,
+    "rank": [
+      0.0,
+      0.0,
+      1.0,
+      1.933167792989875,
+      329.8,
+      1.0,
+      341.0918716
+    ]
+  },
+  {
+    "timesteps": 310000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 679.7913742000001,
+    "mean_length": 976.2,
+    "mean_distance_m": 0.07884380347854908,
+    "mean_minimum_distance_m": 0.021515851504498338,
+    "mean_final_alignment": 0.8802854999096634,
+    "mean_longest_grasp_steps": 139.0,
+    "mean_max_grasped_door_deg": 4.329697754705659,
+    "failures": 1,
+    "rank": [
+      0.0,
+      0.0,
+      1.0,
+      4.329697754705659,
+      139.0,
+      1.0,
+      679.7913742000001
+    ]
+  },
+  {
+    "timesteps": 320000,
+    "success_rate": 0.2,
+    "stage_success_rate": 0.2,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 886.526586,
+    "mean_length": 924.2,
+    "mean_distance_m": 0.11698989269375608,
+    "mean_minimum_distance_m": 0.013319954071173496,
+    "mean_final_alignment": 0.9049697524429178,
+    "mean_longest_grasp_steps": 199.0,
+    "mean_max_grasped_door_deg": 6.819820309023735,
+    "failures": 0,
+    "rank": [
+      0.2,
+      0.2,
+      1.0,
+      6.819820309023735,
+      199.0,
+      1.0,
+      886.526586
+    ]
+  },
+  {
+    "timesteps": 330000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.2,
+    "grasp_rate": 0.2,
+    "mean_return": -809.0772812,
+    "mean_length": 648.0,
+    "mean_distance_m": 0.22969161130013047,
+    "mean_minimum_distance_m": 0.07545048555257142,
+    "mean_final_alignment": 0.6261587409001971,
+    "mean_longest_grasp_steps": 15.2,
+    "mean_max_grasped_door_deg": 4.612590878001006,
+    "failures": 2,
+    "rank": [
+      0.0,
+      0.0,
+      0.2,
+      4.612590878001006,
+      15.2,
+      0.2,
+      -809.0772812
+    ]
+  },
+  {
+    "timesteps": 340000,
+    "success_rate": 0.2,
+    "stage_success_rate": 0.2,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 798.8853868,
+    "mean_length": 896.8,
+    "mean_distance_m": 0.214225599630509,
+    "mean_minimum_distance_m": 0.016124046222977487,
+    "mean_final_alignment": 0.6707227062977799,
+    "mean_longest_grasp_steps": 101.4,
+    "mean_max_grasped_door_deg": 10.688629247031118,
+    "failures": 1,
+    "rank": [
+      0.2,
+      0.2,
+      1.0,
+      10.688629247031118,
+      101.4,
+      1.0,
+      798.8853868
+    ]
+  },
+  {
+    "timesteps": 350000,
+    "success_rate": 0.4,
+    "stage_success_rate": 0.4,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.4,
+    "grasp_rate": 0.4,
+    "mean_return": -337.0823936,
+    "mean_length": 793.2,
+    "mean_distance_m": 0.32769891038507887,
+    "mean_minimum_distance_m": 0.17363170474896678,
+    "mean_final_alignment": 0.6136253142652432,
+    "mean_longest_grasp_steps": 79.4,
+    "mean_max_grasped_door_deg": 7.742159981913801,
+    "failures": 0,
+    "rank": [
+      0.4,
+      0.4,
+      0.4,
+      7.742159981913801,
+      79.4,
+      0.4,
+      -337.0823936
+    ]
+  },
+  {
+    "timesteps": 360000,
+    "success_rate": 0.2,
+    "stage_success_rate": 0.2,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.8,
+    "grasp_rate": 1.0,
+    "mean_return": -278.942324,
+    "mean_length": 575.8,
+    "mean_distance_m": 0.38895507564252985,
+    "mean_minimum_distance_m": 0.05709833222061935,
+    "mean_final_alignment": 0.4814635115921475,
+    "mean_longest_grasp_steps": 82.2,
+    "mean_max_grasped_door_deg": 13.59945552429759,
+    "failures": 3,
+    "rank": [
+      0.2,
+      0.2,
+      0.8,
+      13.59945552429759,
+      82.2,
+      1.0,
+      -278.942324
+    ]
+  },
+  {
+    "timesteps": 370000,
+    "success_rate": 0.6,
+    "stage_success_rate": 0.6,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 1041.6392428,
+    "mean_length": 554.4,
+    "mean_distance_m": 0.3410637611651436,
+    "mean_minimum_distance_m": 0.02216629585027161,
+    "mean_final_alignment": 0.783482091857465,
+    "mean_longest_grasp_steps": 87.2,
+    "mean_max_grasped_door_deg": 18.151550934197207,
+    "failures": 2,
+    "rank": [
+      0.6,
+      0.6,
+      1.0,
+      18.151550934197207,
+      87.2,
+      1.0,
+      1041.6392428
+    ]
+  },
+  {
+    "timesteps": 380000,
+    "success_rate": 0.8,
+    "stage_success_rate": 0.8,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2303.1945148,
+    "mean_length": 612.2,
+    "mean_distance_m": 0.046678053817047295,
+    "mean_minimum_distance_m": 0.012513580365968807,
+    "mean_final_alignment": 0.9518818069740987,
+    "mean_longest_grasp_steps": 48.4,
+    "mean_max_grasped_door_deg": 21.42797254427054,
+    "failures": 0,
+    "rank": [
+      0.8,
+      0.8,
+      1.0,
+      21.42797254427054,
+      48.4,
+      1.0,
+      2303.1945148
+    ]
+  },
+  {
+    "timesteps": 390000,
+    "success_rate": 0.8,
+    "stage_success_rate": 0.8,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 1945.7337592,
+    "mean_length": 424.0,
+    "mean_distance_m": 0.07860580084490652,
+    "mean_minimum_distance_m": 0.03164906162353303,
+    "mean_final_alignment": 0.9569750179938126,
+    "mean_longest_grasp_steps": 99.2,
+    "mean_max_grasped_door_deg": 21.320860084337568,
+    "failures": 1,
+    "rank": [
+      0.8,
+      0.8,
+      1.0,
+      21.320860084337568,
+      99.2,
+      1.0,
+      1945.7337592
+    ]
+  },
+  {
+    "timesteps": 400000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2410.2966982000003,
+    "mean_length": 459.6,
+    "mean_distance_m": 0.04246089141585926,
+    "mean_minimum_distance_m": 0.017032288796914024,
+    "mean_final_alignment": 0.9698433747092763,
+    "mean_longest_grasp_steps": 94.6,
+    "mean_max_grasped_door_deg": 20.893359079972495,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      20.893359079972495,
+      94.6,
+      1.0,
+      2410.2966982000003
+    ]
+  },
+  {
+    "timesteps": 410000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2270.3489154000004,
+    "mean_length": 373.8,
+    "mean_distance_m": 0.03913949605749393,
+    "mean_minimum_distance_m": 0.02212355382739771,
+    "mean_final_alignment": 0.9595634855403983,
+    "mean_longest_grasp_steps": 62.0,
+    "mean_max_grasped_door_deg": 19.647081774960217,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      19.647081774960217,
+      62.0,
+      1.0,
+      2270.3489154000004
+    ]
+  },
+  {
+    "timesteps": 420000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2231.5653576,
+    "mean_length": 386.0,
+    "mean_distance_m": 0.035072713642751926,
+    "mean_minimum_distance_m": 0.0258439163005931,
+    "mean_final_alignment": 0.9563841157715889,
+    "mean_longest_grasp_steps": 41.8,
+    "mean_max_grasped_door_deg": 20.627703221205156,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      20.627703221205156,
+      41.8,
+      1.0,
+      2231.5653576
+    ]
+  },
+  {
+    "timesteps": 430000,
+    "success_rate": 0.4,
+    "stage_success_rate": 0.4,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.4,
+    "grasp_rate": 0.4,
+    "mean_return": 217.4126521999999,
+    "mean_length": 701.2,
+    "mean_distance_m": 0.2296320977731368,
+    "mean_minimum_distance_m": 0.059782790302436314,
+    "mean_final_alignment": 0.6247361460253718,
+    "mean_longest_grasp_steps": 63.6,
+    "mean_max_grasped_door_deg": 7.47020855378932,
+    "failures": 1,
+    "rank": [
+      0.4,
+      0.4,
+      0.4,
+      7.47020855378932,
+      63.6,
+      0.4,
+      217.4126521999999
+    ]
+  },
+  {
+    "timesteps": 440000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2096.1176074,
+    "mean_length": 543.2,
+    "mean_distance_m": 0.03238105221278602,
+    "mean_minimum_distance_m": 0.020633684487373717,
+    "mean_final_alignment": 0.97277514218044,
+    "mean_longest_grasp_steps": 82.8,
+    "mean_max_grasped_door_deg": 18.89921456293888,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      18.89921456293888,
+      82.8,
+      1.0,
+      2096.1176074
+    ]
+  },
+  {
+    "timesteps": 450000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2310.2296582,
+    "mean_length": 351.4,
+    "mean_distance_m": 0.0329676053926593,
+    "mean_minimum_distance_m": 0.021032669910399142,
+    "mean_final_alignment": 0.9642319972276935,
+    "mean_longest_grasp_steps": 85.6,
+    "mean_max_grasped_door_deg": 18.871529866159165,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      18.871529866159165,
+      85.6,
+      1.0,
+      2310.2296582
+    ]
+  },
+  {
+    "timesteps": 460000,
+    "success_rate": 0.0,
+    "stage_success_rate": 0.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 0.0,
+    "grasp_rate": 0.0,
+    "mean_return": -1135.0068884,
+    "mean_length": 866.2,
+    "mean_distance_m": 0.26074732335134543,
+    "mean_minimum_distance_m": 0.13520293059490177,
+    "mean_final_alignment": 0.5208229674904653,
+    "mean_longest_grasp_steps": 0.0,
+    "mean_max_grasped_door_deg": 0.0,
+    "failures": 1,
+    "rank": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1135.0068884
+    ]
+  },
+  {
+    "timesteps": 470000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2278.5701652,
+    "mean_length": 319.4,
+    "mean_distance_m": 0.04456922048959984,
+    "mean_minimum_distance_m": 0.02572288509225787,
+    "mean_final_alignment": 0.9761044578709264,
+    "mean_longest_grasp_steps": 66.8,
+    "mean_max_grasped_door_deg": 18.625194701903418,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      18.625194701903418,
+      66.8,
+      1.0,
+      2278.5701652
+    ]
+  },
+  {
+    "timesteps": 480000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2310.901657,
+    "mean_length": 411.4,
+    "mean_distance_m": 0.035730392135064716,
+    "mean_minimum_distance_m": 0.0171788225161206,
+    "mean_final_alignment": 0.9610309639657235,
+    "mean_longest_grasp_steps": 42.4,
+    "mean_max_grasped_door_deg": 21.65476096493286,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      21.65476096493286,
+      42.4,
+      1.0,
+      2310.901657
+    ]
+  },
+  {
+    "timesteps": 490000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2333.4109252,
+    "mean_length": 342.0,
+    "mean_distance_m": 0.040504970415924726,
+    "mean_minimum_distance_m": 0.01664689190346935,
+    "mean_final_alignment": 0.9466945687708316,
+    "mean_longest_grasp_steps": 68.4,
+    "mean_max_grasped_door_deg": 19.532258532206193,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      19.532258532206193,
+      68.4,
+      1.0,
+      2333.4109252
+    ]
+  },
+  {
+    "timesteps": 500000,
+    "success_rate": 1.0,
+    "stage_success_rate": 1.0,
+    "training_stage": "full",
+    "evaluation_reset_origins": [
+      "home"
+    ],
+    "press_rate": 1.0,
+    "grasp_rate": 1.0,
+    "mean_return": 2311.7672622,
+    "mean_length": 344.2,
+    "mean_distance_m": 0.05327727783128926,
+    "mean_minimum_distance_m": 0.02462578646113394,
+    "mean_final_alignment": 0.9362006127832345,
+    "mean_longest_grasp_steps": 67.2,
+    "mean_max_grasped_door_deg": 18.644080486416488,
+    "failures": 0,
+    "rank": [
+      1.0,
+      1.0,
+      1.0,
+      18.644080486416488,
+      67.2,
+      1.0,
+      2311.7672622
+    ]
+  }
+]

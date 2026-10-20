@@ -1,0 +1,39 @@
+{
+  "mode": "scratch-two-phase-SAC-periodic-pair",
+  "external_pretraining": false,
+  "demonstrations": false,
+  "scripted_actions": false,
+  "seed": 67,
+  "n_envs": 4,
+  "requested_timesteps": 500000,
+  "press_progress_after": 100000,
+  "phase1_requested_device": "cuda",
+  "phase2_requested_device": "cpu",
+  "source_sha256": {
+    "tests\\train_sac_staged.py": "c2eacd1eb1133261718f950548951ce7db28b07a824bc61c9fb57ccb24e62b5b",
+    "tests\\train_sac_learn.py": "300f963771a8190f7f440233ada9116f1f202b1fcca875fcc804d844f40d2a36",
+    "src\\rlinit\\algorithmhand\\door_sac_learn_env.py": "29bf580d2b1203905d7ab4079493c974c464455584f676a4f5e9252f5d7fd32c",
+    "src\\rlinit\\algorithmhand\\door_sac_learn_replay.py": "4a25a55c3dabc8e3cbef714bdb1178ec8167d670f3921c5a0392d29de9a4980a",
+    "src\\rlinit\\algorithmhand\\door_sac_open_env.py": "3402181668acbf28eea6b5d7eeae925d844714db0fe4dfe0fa9f34f9f802b185",
+    "src\\rlinit\\algorithmhand\\door_env.py": "b3ea51c5f1452a8402b0885524736bd75ff4baceed05f277f5be67152a0a3f02",
+    "src\\rlinit\\algorithmhand\\door_direct_env.py": "b7703abdc64c938ad1685fadb69166e6a30ad70ea5da9b4df1fb2a4ce9f3cdaa",
+    "src\\rlinit\\algorithmhand\\door_sac_callback.py": "5360e9baca18e78ce5cf8252cfbe5972001aa590a7f4c55e2e3e8bed47a2e6f2",
+    "models\\door_scene.xml": "c92d4427d3ba84831176f891d0bee2adeb5028e7386b9c2860ccec7111fcd963",
+    "models\\objects\\door_lock_fixture.xml": "a320d8f8830a717eb441d39f0d514f00996569219ceb47f5576bb2a9b6911d66",
+    "models\\stanford_tidybot\\tidybot.xml": "5eb14dceda1ba598ce668915f47636258ff65525edec787c5bf55c6143869401"
+  },
+  "phase": "training_finished",
+  "phase1_snapshot": {
+    "model": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\phase1\\latest_model.zip",
+    "model_sha256": "cedae71984b68506d0c05535c06591c20473ba1c3340797444f51a6d6a7a8af4",
+    "replay": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\phase1\\latest_replay_buffer.pkl",
+    "replay_sha256": "82cd962770a5741b69e9ee8edcd3d84d51371ed46726f9f17cf803c70ea90570",
+    "model_timesteps": 100000,
+    "gradient_updates": 94996,
+    "replay_transitions": 99996
+  },
+  "actual_timesteps": 500000,
+  "selected_phase": "phase2",
+  "selected_checkpoint": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\best\\best_model.zip",
+  "selected_sha256": "749cce2111ce2ef347ec47956fe75f6a7ed79316f7aaa7f66c7585d5d644a9e0"
+}

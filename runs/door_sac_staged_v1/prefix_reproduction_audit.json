@@ -1,0 +1,59 @@
+{
+  "source_model": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_learn_v5_source\\model.zip",
+  "cold_model": "C:\\Users\\jjboy\\code\\RLInit\\runs\\door_sac_staged_v1\\phase1\\latest_model.zip",
+  "pytorch_states_equal": {
+    "pytorch_variables.pth": true,
+    "policy.pth": true,
+    "actor.optimizer.pth": true,
+    "critic.optimizer.pth": true
+  },
+  "model_counters": [
+    {
+      "num_timesteps": 100000,
+      "gradient_updates": 94996
+    },
+    {
+      "num_timesteps": 100000,
+      "gradient_updates": 94996
+    }
+  ],
+  "counters_equal": true,
+  "environment_specifications_equal": false,
+  "replay_fields_equal": true,
+  "replay_details": [
+    {
+      "transitions": 99996,
+      "full": false,
+      "pos": 24999,
+      "fields": {
+        "observations": "fd4db18adf728f95e510d60930ff614c3744e931f2ad2238bd216bb6bd19ed8c",
+        "next_observations": "c53597ebfda8c8abb4c539b3e34fbd75d75f3aeb2dce501160c2dc233abb5b18",
+        "actions": "8a409b79d720c5cdb0324fba2b91c482c580c34f419d07183ff4f05c78b51f71",
+        "rewards": "c836b4286c2d58942bbf72775a14e904bedef455962273af8d785ba020a98162",
+        "dones": "0c2fe16d68d67ff90f5aff772b5cdb183a835a3e066c89bab10fd4232079f3dc",
+        "timeouts": "716bc1d6da05b227b952a743c85e503d2c0326a1aa91691685c8fdd5db5a63d7"
+      }
+    },
+    {
+      "transitions": 99996,
+      "full": false,
+      "pos": 24999,
+      "fields": {
+        "observations": "fd4db18adf728f95e510d60930ff614c3744e931f2ad2238bd216bb6bd19ed8c",
+        "next_observations": "c53597ebfda8c8abb4c539b3e34fbd75d75f3aeb2dce501160c2dc233abb5b18",
+        "actions": "8a409b79d720c5cdb0324fba2b91c482c580c34f419d07183ff4f05c78b51f71",
+        "rewards": "c836b4286c2d58942bbf72775a14e904bedef455962273af8d785ba020a98162",
+        "dones": "0c2fe16d68d67ff90f5aff772b5cdb183a835a3e066c89bab10fd4232079f3dc",
+        "timeouts": "716bc1d6da05b227b952a743c85e503d2c0326a1aa91691685c8fdd5db5a63d7"
+      }
+    }
+  ],
+  "reward_config_defaulted_fields": [
+    [
+      "press_progress_only"
+    ],
+    []
+  ],
+  "canonical_environment_specifications_equal": true,
+  "passed": true
+}
