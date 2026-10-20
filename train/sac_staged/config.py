@@ -12,6 +12,7 @@ MONITOR_KEYS = ("is_success", "grasp_seen", "press_seen", "door_angle", "failure
 def recipe_sources():
     """Archive the implementation actually used, including the entry point."""
     return (ROOT / "train/train_sac_modular.py",
+            ROOT / "train/train_sac_render.py",
             *sorted(Path(__file__).resolve().parent.glob("*.py")),
             ROOT / "src/rlinit/algorithmhand/door_sac_learn_env.py")
 

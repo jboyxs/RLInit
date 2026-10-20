@@ -18,7 +18,7 @@ class ProjectStructureTests(unittest.TestCase):
         self.assertEqual(
             {path.name for path in (ROOT / "train").glob("*.py")},
             {"__init__.py", "train_hand.py", "train_sb3.py", "train_sac_staged.py",
-             "train_sac_modular.py"},
+             "train_sac_modular.py", "train_sac_render.py"},
         )
         self.assertFalse((ROOT / "train.py").exists())
         self.assertFalse(list((ROOT / "tests").glob("train*.py")))

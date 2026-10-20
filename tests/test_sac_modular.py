@@ -29,6 +29,13 @@ class AlgorithmOnly(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         if node.name == "run":
+            # Optional viewer routing has its own integration tests. With the
+            # default render=False, the original training path is unchanged.
+            if node.args.kwonlyargs[-1].arg == "render":
+                node.args.kwonlyargs.pop()
+                node.args.kw_defaults.pop()
+            node.body = [item for item in node.body if not (
+                isinstance(item, ast.If) and isinstance(item.test, ast.Name) and item.test.id == "render")]
             node.body = [item for item in node.body if not (isinstance(item, ast.Assign)
                 and any(isinstance(target, ast.Name) and target.id == "sources" for target in item.targets))]
         return self.generic_visit(node)

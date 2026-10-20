@@ -38,7 +38,10 @@ def periodic_pair(phase, *, timesteps, n_envs):
 
 
 def run(*, output_dir, total_timesteps=500000, press_progress_after=100000,
-        seed=67, n_envs=4, device="auto", opening_device="cpu", eval_episodes=5):
+        seed=67, n_envs=4, device="auto", opening_device="cpu", eval_episodes=5, render=False):
+    if render:
+        if n_envs != 1:
+            raise ValueError("Training rendering requires n_envs=1")
     root = Path(output_dir).resolve()
     if root.exists() and (not root.is_dir() or any(root.iterdir())):
         raise ValueError("Output directory must be empty")
@@ -73,6 +76,10 @@ def run(*, output_dir, total_timesteps=500000, press_progress_after=100000,
     options = dict(seed=seed, n_envs=n_envs, eval_freq=10000, eval_episodes=eval_episodes,
                    settings=replace(SACLearnSettings(), n_steps=3),
                    reward_config=LearnRewardConfig.guided(), save_replay_buffer=True)
+    if render:
+        options["render"] = True
+        manifest["render"] = True
+        save_manifest()
     train(output_dir=root / "phase1", total_timesteps=press_progress_after,
           device=device, **options)
     first_config = json.loads((root / "phase1/config.json").read_text(encoding="utf-8"))

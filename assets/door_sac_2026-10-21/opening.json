@@ -1,0 +1,22 @@
+{
+  "checkpoint": "runs/door_sac_staged/best/best_model.zip",
+  "checkpoint_sha256": "f54b11bd8945e0c896300d80b9d4461611ba00e0a320a9d0ca144e60aafc6f39",
+  "trained_timesteps": 480000,
+  "seed": 20000,
+  "deterministic": true,
+  "reset_origin": "home",
+  "success": true,
+  "steps": 333,
+  "simulation_seconds": 6.66,
+  "frames": 168,
+  "frame_interval_seconds": 0.04,
+  "final_pause_seconds": 1.0,
+  "return_": 2360.5568125456116,
+  "grasp": true,
+  "press": true,
+  "final_handle_deg": 60.002021243376994,
+  "final_door_deg": 21.35568472517166,
+  "success_hold_seconds": 0.3,
+  "failure": "",
+  "gif_sha256": "03c681716584b65cb407f57cdb52d2bd40029b7d1ee072c40d4c12908bd5bfe9"
+}
