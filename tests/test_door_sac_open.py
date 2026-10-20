@@ -4,11 +4,14 @@ from dataclasses import asdict, replace
 import json
 from pathlib import Path
 import pickle
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import torch
+import train_sac_open
 
 from rlinit.algorithmhand.door_env import DoorConfig
 from rlinit.algorithmhand.door_sac_grasp_env import GraspTrainingConfig, PrecisionGraspDoorEnv
@@ -17,6 +20,46 @@ from train_sac_open import SACOpenSettings, evaluate, load_agent, train
 
 
 class SACOpenTests(unittest.TestCase):
+    def test_render_training_updates_saves_and_closes_one_viewer(self):
+        previous_threads = torch.get_num_threads()
+        self.addCleanup(torch.set_num_threads, previous_threads)
+        settings = replace(SACOpenSettings(), buffer_size=64, batch_size=4, scratch_learning_starts=2)
+        with tempfile.TemporaryDirectory() as directory, patch("mujoco.viewer.launch_passive") as launch:
+            viewer = launch.return_value
+            # Closing the window midway must not interrupt learning or open another window.
+            viewer.is_running.side_effect = [True, True] + [False] * 100
+            checkpoint = train(
+                output_dir=directory, total_timesteps=8, render=True, device="cpu", settings=settings,
+                env_config=replace(default_door_config(), max_steps=4), eval_freq=4, eval_episodes=1,
+            )
+            launch.assert_called_once()
+            viewer.sync.assert_called()
+            viewer.close.assert_called_once()
+            metadata = json.loads((Path(directory) / "config.json").read_text())
+            self.assertEqual(metadata["n_envs"], 1)
+            self.assertTrue(metadata["render"])
+            self.assertEqual(metadata["actual_timesteps"], 8)
+            self.assertGreater(metadata["gradient_updates"], 0)
+            self.assertTrue(checkpoint.is_file())
+            self.assertTrue((Path(directory) / "best/best_model.zip").is_file())
+            self.assertTrue((Path(directory) / "evaluation.json").is_file())
+        with self.assertRaisesRegex(ValueError, "--n-envs 1"):
+            train(render=True, n_envs=2)
+
+    def test_cli_accepts_training_render_and_preserves_evaluation_render(self):
+        previous_threads = torch.get_num_threads()
+        self.addCleanup(torch.set_num_threads, previous_threads)
+        with patch.object(sys, "argv", ["train_sac_open.py", "--timesteps", "1000000", "--render"]), \
+                patch.object(train_sac_open, "train") as training:
+            train_sac_open.main()
+            self.assertTrue(training.call_args.kwargs["render"])
+            self.assertIsNone(training.call_args.kwargs["n_envs"])
+            self.assertEqual(training.call_args.kwargs["total_timesteps"], 1000000)
+        with patch.object(sys, "argv", ["train_sac_open.py", "--evaluate", "model.zip", "--render"]), \
+                patch.object(train_sac_open, "evaluate", return_value={}) as evaluation:
+            train_sac_open.main()
+            self.assertTrue(evaluation.call_args.kwargs["render"])
+
     def test_matches_successful_environment_observations_rewards_and_physics(self):
         config = default_door_config()
         reference = PrecisionGraspDoorEnv(config=config, training_config=GraspTrainingConfig.joint(

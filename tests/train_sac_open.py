@@ -2,6 +2,8 @@
 
 Fresh online training (no checkpoint is loaded implicitly):
   uv run --no-sync python tests/train_sac_open.py
+Watch training in a single environment (requires a graphical desktop):
+  uv run --no-sync python tests/train_sac_open.py --timesteps 1000000 --render
 Evaluate the published model:
   uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_joint_v2_verified/sac_door.zip --seed 70000 --episodes 1 --render
 The historical 97/100 result used previous online weights/replay, not scratch.
@@ -171,9 +173,10 @@ def evaluate(checkpoint, *, episodes=20, seed=20000, device="cpu", model_path=DE
                 press_rate=float(np.mean([r["press"] for r in records])), records=records)
 
 
-def _worker(model_path, config, reward, monitor_path=None):
+def _worker(model_path, config, reward, monitor_path=None, *, render=False):
     torch.set_num_threads(1)
-    return Monitor(SACOpenDoorEnv(model_path, config=config, reward_config=reward),
+    return Monitor(SACOpenDoorEnv(model_path, config=config, reward_config=reward,
+                                 render_mode="human" if render else None),
                    str(monitor_path) if monitor_path else None, info_keywords=MONITOR_KEYS)
 
 
@@ -205,12 +208,15 @@ def _load_replay(agent, path, source_spec, target_spec):
     agent.replay_buffer_kwargs = dict(n_steps=agent.n_steps, gamma=agent.gamma) if agent.n_steps > 1 else {}
 
 
-def train(*, output_dir=ROOT / "runs/door_sac_open", total_timesteps=500000, seed=67, n_envs=4,
+def train(*, output_dir=ROOT / "runs/door_sac_open", total_timesteps=500000, seed=67, n_envs=None,
           device="auto", model_path=DEFAULT_MODEL, settings=None, env_config=None, reward_config=None,
           eval_freq=10000, eval_episodes=5, initialize_from=None, replay_buffer_path=None,
-          resume_checkpoint=None, save_replay_buffer=True):
+          resume_checkpoint=None, save_replay_buffer=True, render=False):
+    n_envs = n_envs if n_envs is not None else (1 if render else 4)
     if min(total_timesteps, n_envs, eval_freq, eval_episodes) < 1:
         raise ValueError("Step counts, environments and episodes must be positive")
+    if render and n_envs != 1:
+        raise ValueError("Training rendering requires --n-envs 1; omit --render for parallel training")
     if initialize_from is not None and resume_checkpoint is not None:
         raise ValueError("Choose initialization or resume")
     if replay_buffer_path is not None and initialize_from is None and resume_checkpoint is None:
@@ -256,7 +262,8 @@ def train(*, output_dir=ROOT / "runs/door_sac_open", total_timesteps=500000, see
     output.mkdir(parents=True, exist_ok=True)
     env = eval_env = logger = None
     try:
-        factories = [partial(_worker, str(Path(model_path).resolve()), config, reward, output / f"worker_{i}")
+        factories = [partial(_worker, str(Path(model_path).resolve()), config, reward, output / f"worker_{i}",
+                             render=render)
                      for i in range(n_envs)]
         env = DummyVecEnv(factories) if n_envs == 1 else SubprocVecEnv(factories, start_method="spawn")
         eval_env = DummyVecEnv([partial(_worker, str(Path(model_path).resolve()), config, reward)])
@@ -291,7 +298,7 @@ def train(*, output_dir=ROOT / "runs/door_sac_open", total_timesteps=500000, see
                    mode="resume" if resume_checkpoint else "online-initialization" if initialize_from else "scratch",
                    seed=seed, worker_seeds=[seed + i for i in range(n_envs)], eval_seed=10000,
                    n_envs=n_envs, learning_starts=agent.learning_starts, requested_timesteps=total_timesteps,
-                   save_replay_buffer=save_replay_buffer,
+                   save_replay_buffer=save_replay_buffer, render=render,
                    train_freq=1, gradient_steps=-1, net_arch=[256, 256], activation="ReLU", torch_threads=1,
                    eval_freq=eval_freq, eval_episodes=eval_episodes,
                    initialization=str(initialize_from) if initialize_from else None,
@@ -351,12 +358,13 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=ROOT / "runs/door_sac_open")
     parser.add_argument("--timesteps", type=int, default=500000)
     parser.add_argument("--seed", type=int)
-    parser.add_argument("--n-envs", type=int, default=4)
+    parser.add_argument("--n-envs", type=int, help="Training environments (default: 4, or 1 with --render)")
     parser.add_argument("--eval-freq", type=int, default=10000)
     parser.add_argument("--episodes", type=int)
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL)
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"))
-    parser.add_argument("--render", action="store_true")
+    parser.add_argument("--render", action="store_true",
+                        help="Watch training (single environment) or evaluation; requires a graphical desktop")
     parser.add_argument("--no-save-replay", action="store_true")
     args = parser.parse_args()
     torch.set_num_threads(1)
@@ -367,12 +375,12 @@ def main():
                            model_path=args.model, device=args.device or "cpu", render=args.render)
         print(json.dumps(metrics, indent=2))
     else:
-        if args.render:
-            parser.error("Use --evaluate CHECKPOINT --render to watch the learned policy")
+        if args.render and args.n_envs not in (None, 1):
+            parser.error("Training rendering requires --n-envs 1; omit --render for parallel training")
         train(output_dir=args.output_dir, total_timesteps=args.timesteps, seed=args.seed if args.seed is not None else 67,
               n_envs=args.n_envs, device=args.device or "auto", model_path=args.model, eval_freq=args.eval_freq,
               eval_episodes=args.episodes or 5, initialize_from=args.init_from, resume_checkpoint=args.resume,
-              replay_buffer_path=args.replay_buffer, save_replay_buffer=not args.no_save_replay)
+              replay_buffer_path=args.replay_buffer, save_replay_buffer=not args.no_save_replay, render=args.render)
 
 
 if __name__ == "__main__":

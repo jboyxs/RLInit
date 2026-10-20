@@ -1,6 +1,6 @@
 <mujoco model="door lock fixture">
   <!-- Adapted from door_lock.xml (robosuite / mj_envs).
-       Keep the original panel, handle and joint dynamics; use solid materials
+       Keep the original panel and handle mass/dynamics; use solid materials
        so this scene does not require the separately distributed textures.
        All names are prefixed to avoid collisions with robot assets.
        This is a small laboratory door, mounted on floor-supported posts.
@@ -27,11 +27,18 @@
           <geom name="door_panel" type="box" size="0.22 0.02 0.29" friction="1 1 1" material="door_wood"/>
           <body name="door_handle_body" pos="-0.175 0 -0.025">
             <inertial pos="-0.017762 0.0138544 0" quat="0.365653 0.605347 -0.36522 0.605365" mass="0.1" diaginertia="0.0483771 0.0410001 0.0111013"/>
-            <joint name="door_latch_joint" type="hinge" pos="0 0 0" axis="0 1 0" range="-1.57 1.57" frictionloss="0.1" damping="0" limited="true" springref="0" stiffness="1"/>
+            <!-- Positive rotation depresses the handle; the zero lower stop
+                 blocks lifting it above horizontal. The upper travel remains
+                 90 degrees; 45 degrees below is the latch-release target. -->
+            <joint name="door_latch_joint" type="hinge" pos="0 0 0" axis="0 1 0" range="0 1.57" frictionloss="0.1" damping="0" limited="true" springref="0" stiffness="1" solreflimit="0.004 1" solimplimit="0.99 0.999 0.0001"/>
             <geom name="door_handle_base" type="cylinder" fromto="0 0.0625 0 0 -0.125 0" size="0.025" material="door_metal"/>
             <geom name="door_handle" type="box" size="0.075 0.015 0.02" pos="0.075 -0.10 0" material="door_metal"/>
-            <geom name="door_latch" type="box" size="0.025 0.0125 0.03125" pos="-0.03125 0.05 0" quat="0.707388 0 0.706825 0" material="door_metal"/>
-            <geom name="door_latch_tip" type="cylinder" size="0.025 0.0125" pos="-0.0625 0.05 0" quat="0.707388 0.706825 0 0" material="door_metal"/>
+            <!-- A 54 mm tongue with a 6 mm rounded tip still blocks the closed
+                 door at zero angle. Sweeping the door through 0..0.4 rad gives
+                 first geometric clearance near 42.35 degrees, with about
+                 1.7 mm clearance at a 45-degree handle depression. -->
+            <geom name="door_latch" type="box" size="0.006 0.0125 0.027" pos="-0.027 0.05 0" quat="0.707388 0 0.706825 0" material="door_metal"/>
+            <geom name="door_latch_tip" type="cylinder" size="0.006 0.0125" pos="-0.054 0.05 0" quat="0.707388 0.706825 0 0" material="door_metal"/>
             <site name="door_handle_site" pos="0.125 -0.10 0" size="0.01" rgba="0 0 1 0"/>
           </body>
         </body>

@@ -1,5 +1,6 @@
 <mujoco model="TidyBot and door">
   <include file="stanford_tidybot/tidybot.xml"/>
+  <!-- Door fixture: downward-only handle, with latch clearance by 45 degrees. -->
   <include file="objects/door_lock_fixture.xml"/>
   <!-- Resolve the robot meshes relative to this scene entry point. -->
   <compiler angle="radian" meshdir="stanford_tidybot/assets"/>
