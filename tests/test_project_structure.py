@@ -17,7 +17,8 @@ class ProjectStructureTests(unittest.TestCase):
     def test_training_entry_points_are_in_train(self):
         self.assertEqual(
             {path.name for path in (ROOT / "train").glob("*.py")},
-            {"__init__.py", "train_hand.py", "train_sb3.py", "train_sac_staged.py"},
+            {"__init__.py", "train_hand.py", "train_sb3.py", "train_sac_staged.py",
+             "train_sac_modular.py"},
         )
         self.assertFalse((ROOT / "train.py").exists())
         self.assertFalse(list((ROOT / "tests").glob("train*.py")))

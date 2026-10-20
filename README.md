@@ -2,6 +2,7 @@
 
 > **当前入口（2026-10-20 重构后）**：任务一使用 `train/train_hand.py` 或 `train/train_sb3.py`，任务二使用 `train/train_sac_staged.py`。
 > 当前结构、可运行命令和迁移记录见文末的[重构后使用说明](#env-train-layout)。下方早期研发记录及“重构前”结构图保留作历史对照，其中旧 `tests/train*.py` 与根目录 `train.py` 命令已经迁移，不再作为现行入口。
+> 新增的[可读 SAC 模块化入口](#sac-modular)保留原 `train/train_sac_staged.py`，通过一个简短的 train 脚本直接导入小模块运行。
 
 ### 路线（边做边改）
 MuJoCo
@@ -263,8 +264,6 @@ RLInit/
 │   ├── door_sac_joint_v2_verified/      # 较早方案的已提交验证产物
 │   └── ...                             # 各分支训练、诊断与临时实验输出
 │
-├── mjmodel.xml                         # 根目录现存的 MuJoCo 模型导出文件
-├── MJDATA.TXT / MUJOCO_LOG.TXT          # 根目录现存的 MuJoCo 数据/诊断文件
 ├── .venv/                              # 本地 Python 环境，不纳入 Git
 └── .git/                               # Git 元数据
 ```
@@ -453,3 +452,64 @@ CPU-only 可将训练命令改为 `--device cpu --opening-device cpu`；它不�
 ```powershell
 uv run --no-sync python -m unittest discover -s tests -p 'test_*.py' -v
 ```
+
+<a id="sac-modular"></a>
+
+## 可读 SAC 模块化入口（2026-10-20）
+
+原 `train/train_sac_staged.py` 逐字节保留，继续作为可独立运行的参考版本。新增实现不导入、执行或动态加载这个原脚本。
+新入口 `train/train_sac_modular.py` 直接导入各个职责明确的小模块，组合成完整训练流程。修改模块后直接运行入口即可，无需构建或生成文件。
+
+```text
+train/
+├── train_sac_staged.py       # 原版，保留不变
+├── train_sac_modular.py      # 新的短入口：只负责原命令行参数与调度
+└── sac_staged/
+    ├── __init__.py          # 保留原 CUBLAS 环境初始化时机
+    ├── config.py            # 参数、设备、格式常量与源码归档清单
+    ├── evaluation.py        # 检查点兼容性、评估、独立物理轨迹复核
+    ├── replay.py            # press 奖励重算、回放加载和恢复片段边界
+    ├── callbacks.py         # 完整任务评估、周期快照、选模与回合日志
+    ├── training.py          # 单阶段 SAC 采样、更新、保存和结束评估
+    └── pipeline.py          # 原两阶段编排、周期模型/回放配对与最终选模
+```
+
+调用顺序为 `train_sac_modular.py → pipeline.run → training.train`。
+`training` 使用 `callbacks`、`replay` 和 `evaluation`，这些模块共用 `config` 和原独立环境。
+训练时由 Python 正常导入这些模块，所有模块共同完成原版流程。
+
+从仓库根目录执行：
+
+```powershell
+# 直接使用模块化入口；参数、默认值与原版相同，输出目录须为空。
+uv run --no-sync python train/train_sac_modular.py --seed 67 --device cuda --opening-device cpu --output-dir runs/door_sac_modular
+
+# 也支持模块方式调用。
+uv run --no-sync python -m train.train_sac_modular --seed 67 --device cuda --opening-device cpu --output-dir runs/door_sac_modular_module
+
+# 新入口保留 --evaluate、--episodes、--seed、--render、--trace-output 等选项。
+# 将下面的 CHECKPOINT.zip 替换为实际模型路径。
+uv run --no-sync python train/train_sac_modular.py --evaluate CHECKPOINT.zip --episodes 100 --seed 90000 --device cpu
+uv run --no-sync python train/train_sac_modular.py --evaluate CHECKPOINT.zip --episodes 5 --seed 90000 --device cpu --render
+```
+
+日常只维护 `train/train_sac_modular.py` 和 `train/sac_staged/`。此前添加的构建脚本和生成单文件已移除，原版 `train/train_sac_staged.py` 继续保留。
+
+“运行结果一致”指同一依赖版本、硬件、设备、种子和参数下，网络更新、优化器、回放、动作、奖励、成功判定与选模数值一致。
+输出目录、源码清单/哈希、序列化文件元数据和耗时会随实现入口或实际运行变化，不能把这些字段当成训练数值差异。
+模块化版归档实际使用的模块和入口。
+
+自动检查包含核心函数/类 AST 对照、命令行默认值、新实现不导入原版、四环境真实采样更新，以及原始独立入口的全部既有测试。
+移除构建流程后重新运行全部 **49 项测试，通过**，其中 CUDA 更新与原版网络/优化器一致，四环境 spawn 训练正常。
+实际训练和策略逐步轨迹对照曾保存在本地 `runs/sac_modular_validation/`，验证完成后已清理；该短程训练验证代码等价，不代表新训练的网络已经学会完整开门。
+
+模块化版与原版的实际对照结果（修改导入结构时完成）：
+
+- CUDA 短程更新后网络及优化器逐项一致；模块化版通过四环境 spawn 更新测试。
+- 两个版本分别从零运行 CPU 单环境 **20000＋4 步**，第一阶段周期模型、两阶段回放、最终网络/优化器、计数、固定评估及选模结果完全一致。
+- 对同一个已训练模型运行相同的 100 个测试初态，均为 **95/100**；共 **36853 步**的完整物理轨迹 JSON 逐字节一致，SHA-256 为 `eed879cf0d88fc1812c561066f9620f6f82be34309d0aa80b5262baf9144b087`。
+- 原 `train/train_sac_staged.py`、环境及四个指定保留目录均通过原始字节哈希检查；没有修改环境或用新文件替换旧版。
+
+上述结果是清理前完成的同环境回归对照，不是重新训练 50 万步或新的泛化成功率测试。临时检查脚本、模型/回放副本、逐步轨迹及日志已清理；正式回归测试保留在 `tests/`。
+
+本次还移除了根目录未被训练代码引用的 `mjmodel.xml`、`MJDATA.TXT`、`MUJOCO_LOG.TXT` 和旧 Python 缓存。三个 MuJoCo 导出/诊断文件已加入忽略规则；运行使用的模型仍位于 `models/`。

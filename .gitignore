@@ -9,3 +9,8 @@ wheels/
 # Virtual environments
 .venv
 runs/
+
+# MuJoCo diagnostic exports generated in the repository root
+/MJDATA.TXT
+/MUJOCO_LOG.TXT
+/mjmodel.xml
