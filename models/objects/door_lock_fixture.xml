@@ -29,8 +29,8 @@
             <inertial pos="-0.017762 0.0138544 0" quat="0.365653 0.605347 -0.36522 0.605365" mass="0.1" diaginertia="0.0483771 0.0410001 0.0111013"/>
             <!-- Positive rotation depresses the handle; the zero lower stop
                  blocks lifting it above horizontal. The upper travel remains
-                 90 degrees; 45 degrees below is the latch-release target. -->
-            <joint name="door_latch_joint" type="hinge" pos="0 0 0" axis="0 1 0" range="0 1.57" frictionloss="0.1" damping="0" limited="true" springref="0" stiffness="1" solreflimit="0.004 1" solimplimit="0.99 0.999 0.0001"/>
+                 60 degrees; 45 degrees below is the latch-release target. -->
+            <joint name="door_latch_joint" type="hinge" pos="0 0 0" axis="0 1 0" range="0 1.0471975511965976" frictionloss="0.1" damping="0" limited="true" springref="0" stiffness="1" solreflimit="0.004 1" solimplimit="0.99 0.999 0.0001"/>
             <geom name="door_handle_base" type="cylinder" fromto="0 0.0625 0 0 -0.125 0" size="0.025" material="door_metal"/>
             <geom name="door_handle" type="box" size="0.075 0.015 0.02" pos="0.075 -0.10 0" material="door_metal"/>
             <!-- A 54 mm tongue with a 6 mm rounded tip still blocks the closed

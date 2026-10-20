@@ -13,7 +13,7 @@ class DoorModelTests(unittest.TestCase):
         model = fixed_base_model(DEFAULT_MODEL)
         handle = model.joint("door_latch_joint").id
         door = model.joint("door_hinge").id
-        np.testing.assert_array_equal(model.jnt_range[handle], [0, 1.57])
+        np.testing.assert_allclose(model.jnt_range[handle], [0, np.pi / 3], rtol=0, atol=1e-15)
         np.testing.assert_array_equal(model.jnt_range[door], [0, 0.4])
         self.assertTrue(model.jnt_limited[handle])
         self.assertEqual(model.jnt_stiffness[handle], 1.)
@@ -89,6 +89,21 @@ class DoorModelTests(unittest.TestCase):
             self.assertFalse(any(w.number for w in data.warning))
         self.assertLess(maximum_openings[0], 0.05)
         self.assertGreater(maximum_openings[1], 0.3)
+
+    def test_downward_torque_settles_at_60_degree_stop(self):
+        model = self.isolated_fixture()
+        joint = model.joint("door_latch_joint").id
+        position, dof = int(model.jnt_qposadr[joint]), int(model.jnt_dofadr[joint])
+        for torque in (3., 10.):
+            with self.subTest(torque=torque):
+                data = mujoco.MjData(model)
+                for _ in range(1500):
+                    data.qfrc_applied[dof] = torque
+                    mujoco.mj_step(model, data)
+                # Test the sustained stop; an impulsive load can temporarily
+                # overshoot a soft joint limit during deceleration.
+                self.assertAlmostEqual(np.rad2deg(data.qpos[position]), 60., delta=0.01)
+                self.assertFalse(any(w.number for w in data.warning))
 
 
 if __name__ == "__main__":

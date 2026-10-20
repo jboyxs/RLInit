@@ -180,6 +180,9 @@ class DoorEnv(gym.Env):
         opening = np.clip(self.data.qpos[self.hinge] / self.config.success_angle, 0, 1)
         return float(2 * reach + alignment * reach + 2 * grasp * press + 10 * opening)
 
+    def _press_milestone_threshold(self):
+        return 1.1
+
     def _is_success(self, *, grasp, reason):
         if grasp and self.data.qpos[self.hinge] >= self.config.success_angle and not reason:
             self.success_time = min(self.config.success_hold_seconds, self.success_time + self.dt)
@@ -301,7 +304,7 @@ class DoorEnv(gym.Env):
         grasp = features[4]
         newly_grasped = grasp and not self.grasp_seen
         self.grasp_seen |= grasp
-        newly_pressed = grasp and self.data.qpos[self.latch] >= 1.1 and not self.press_seen
+        newly_pressed = grasp and self.data.qpos[self.latch] >= self._press_milestone_threshold() and not self.press_seen
         self.press_seen |= newly_pressed
         success = self._is_success(grasp=grasp, reason=reason)
         terminated = bool(success or reason)

@@ -21,7 +21,11 @@ class SACOpenPressTests(unittest.TestCase):
     def test_defaults_and_real_physics_match_original(self):
         reward = asdict(OpenPressRewardConfig())
         self.assertEqual(reward.pop("press_milestone_angle"), 1.25)
-        self.assertEqual(reward, asdict(OpenRewardConfig()))
+        self.assertEqual(reward.pop("press_target_angle"), 1.3)
+        main_reward = asdict(OpenRewardConfig())
+        main_reward.pop("press_milestone_angle")
+        main_reward.pop("press_target_angle")
+        self.assertEqual(reward, main_reward)
         self.assertEqual(asdict(SACOpenSettings()), asdict(original.SACOpenSettings()))
         old, new = SACOpenDoorEnv(), SACOpenPressDoorEnv()
         self.addCleanup(old.close)
@@ -42,7 +46,7 @@ class SACOpenPressTests(unittest.TestCase):
         self.assertEqual(new.specification()["reward_config"]["press_milestone_angle"], 1.25)
         self.assertEqual(new.specification()["task"], TASK)
 
-    def test_only_press_milestone_changes_at_boundary_and_pays_once(self):
+    def test_only_press_terms_differ_from_current_main_recipe(self):
         old, new = SACOpenDoorEnv(), SACOpenPressDoorEnv()
         self.addCleanup(old.close)
         self.addCleanup(new.close)
@@ -79,8 +83,9 @@ class SACOpenPressTests(unittest.TestCase):
                     new_components = dict(second[4]["reward_components"])
                     self.assertAlmostEqual(old_components.pop("press_milestone"), 3 * quality * old_paid)
                     self.assertAlmostEqual(new_components.pop("press_milestone"), 3 * quality * new_paid)
+                    self.assertAlmostEqual(old_components.pop("pressing"), .5 * grasp * np.clip(angle / (np.pi / 4), -1, 1) * quality)
+                    self.assertAlmostEqual(new_components.pop("pressing"), .5 * grasp * np.clip(angle / 1.3, -1, 1) * quality)
                     self.assertEqual(old_components, new_components)
-                    self.assertAlmostEqual(new_components["pressing"], .5 * grasp * np.clip(angle / 1.3, -1, 1) * quality)
                     np.testing.assert_array_equal(np.delete(first[0], press_index), np.delete(second[0], press_index))
                     self.assertEqual(second[0][press_index], second[4]["press_seen"])
             new.reset(seed=0)

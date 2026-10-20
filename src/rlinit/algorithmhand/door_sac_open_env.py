@@ -1,6 +1,6 @@
-"""Fixed full-door SAC environment matching the independently verified recipe.
+"""Full-door SAC recipe with press rewards adapted to the 45-degree latch.
 
-This module freezes the successful observation/reward design, without the
+This module retains the successful observation/reward design, without the
 experimental stages, reset banks or action controllers. Physics and all eight
 actions remain those of DoorEnv. Change new-training reward weights here.
 """
@@ -35,6 +35,8 @@ class OpenRewardConfig:
     failure_penalty: float = 100.0
     grasp_milestone: float = 2.0
     press_milestone: float = 3.0
+    press_target_angle: float = np.pi / 4
+    press_milestone_angle: float = np.pi / 4
     ready_distance: float = 0.025
     ready_alignment: float = 0.85
     contact_reference: float = 2.0
@@ -43,6 +45,8 @@ class OpenRewardConfig:
         for name, value in asdict(self).items():
             if not np.isfinite(value) or value < 0:
                 raise ValueError(f"{name} must be finite and nonnegative")
+        if min(self.press_target_angle, self.press_milestone_angle) <= 0:
+            raise ValueError("Press target and milestone angles must be positive")
         if min(self.distance_weight, self.orientation_weight, self.ready_distance, self.contact_reference) <= 0:
             raise ValueError("Distance/orientation scales and contact reference must be positive")
         if not 0.05 < self.ready_alignment <= 1:
@@ -75,6 +79,9 @@ class SACOpenDoorEnv(DirectRewardDoorEnv):
     def _readiness(self, center, alignment):
         return float(np.exp(-(np.linalg.norm(center) / self.reward_config.ready_distance) ** 2) * alignment ** 4)
 
+    def _press_milestone_threshold(self):
+        return self.reward_config.press_milestone_angle
+
     def _obs(self):
         base = super()._obs()
         base[62:64] = np.log1p(np.maximum(base[62:64], 0))
@@ -98,7 +105,7 @@ class SACOpenDoorEnv(DirectRewardDoorEnv):
         centered = float(np.clip((2 * cfg.ready_distance - center_distance) / cfg.ready_distance, 0, 1))
         close_readiness = max(self._readiness(center, alignment), contact * alignment ** 4, aligned * centered)
         closure = float((action[7] + 1) / 2)
-        press = float(np.clip(self.data.qpos[self.latch] / 1.3, -1, 1))
+        press = float(np.clip(self.data.qpos[self.latch] / cfg.press_target_angle, -1, 1))
         opening = float(np.clip(self.data.qpos[self.hinge] / self.config.success_angle, 0, 1))
         return {
             "distance": -cfg.distance_weight * distance,

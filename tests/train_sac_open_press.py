@@ -1,6 +1,7 @@
-"""Full-door SAC variant: first-press milestone at 1.25 rad instead of 1.1.
+"""Historical full-door SAC variant: first-press milestone at 1.25 rad.
 
-All other rewards, physics, SAC settings and rendering match train_sac_open.py.
+Press normalization remains 1.3 rad; the main recipe now targets 45 degrees.
+Other reward weights, physics, SAC settings and rendering match train_sac_open.py.
 Fresh online training:
   uv run --no-sync python tests/train_sac_open_press.py --timesteps 1000000
 Watch single-environment training:

@@ -1,12 +1,12 @@
-"""Reproducible full-door joint SAC recipe, with no experimental switches.
+"""Full-door joint SAC recipe with press rewards targeting 45 degrees.
 
 Fresh online training (no checkpoint is loaded implicitly):
   uv run --no-sync python tests/train_sac_open.py
 Watch training in a single environment (requires a graphical desktop):
   uv run --no-sync python tests/train_sac_open.py --timesteps 1000000 --render
-Evaluate the published model:
-  uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_joint_v2_verified/sac_door.zip --seed 70000 --episodes 1 --render
-The historical 97/100 result used previous online weights/replay, not scratch.
+Evaluate a model trained with the current scene:
+  uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_open/best/best_model.zip --episodes 1 --render
+The 60-degree handle limit and 45-degree release target require fresh training.
 """
 
 import argparse
@@ -82,7 +82,12 @@ def _file_hash(path):
 
 def _saved_reward(spec):
     if spec.get("task") == TASK:
-        return OpenRewardConfig(**spec["reward_config"])
+        reward = dict(spec["reward_config"])
+        # Missing angle fields identify checkpoints saved before the 45-degree
+        # recipe. Restore their original rewards rather than changing them.
+        reward.setdefault("press_target_angle", 1.3)
+        reward.setdefault("press_milestone_angle", 1.1)
+        return OpenRewardConfig(**reward)
     if spec.get("task") != LEGACY_TASK:
         raise ValueError("Expected a direct joint-action full-door SAC checkpoint")
     cfg = spec["training_config"]
@@ -91,7 +96,9 @@ def _saved_reward(spec):
     if any(cfg.get(k) != v for k, v in required.items()) or any(
             cfg.get(k, 0) != 0 for k in ("target_error_weight", "penetration_weight", "overpress_weight")):
         raise ValueError("Legacy checkpoint does not use the verified full-task observation/reward design")
-    return OpenRewardConfig(**{key: cfg[key] for key in asdict(OpenRewardConfig())})
+    weights = {key: cfg[key] for key in asdict(OpenRewardConfig())
+               if key not in ("press_target_angle", "press_milestone_angle")}
+    return OpenRewardConfig(**weights, press_target_angle=1.3, press_milestone_angle=1.1)
 
 
 def _validate_source(agent, env, *, allow_gamma_change=False):

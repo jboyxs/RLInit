@@ -168,11 +168,11 @@ GPU 用于策略和价值网络的计算，当前 MuJoCo 物理步进仍在 CPU�
 
 场景入口为 `models/door_scene.xml`，复用 TidyBot，并引入 `models/objects/door_lock_fixture.xml`。门模型改自下载的 `door_lock.xml`：保留原门板尺寸、质量/惯量和两个被动关节，使用纯色材质并添加落地支撑立柱；原下载文件不变。门框固定，把手约在世界坐标 `[0.720, 0.000, 0.775] m`，位于机器人 `home` 姿态的夹爪前方约 14 cm。底盘、机械臂和夹爪自由度均保留。
 
-当前门把手只能从水平位置向下旋转，关节范围为 `0～1.57 rad`，向上受单向限位约束。门闩调整为 54 mm 长的舌体和
+当前门把手只能从水平位置向下旋转，关节范围为 `0～1.0471975512 rad`（0～60°），向上受单向限位约束。门闩调整为 54 mm 长的舌体和
 6 mm 半径圆头，水平时仍挡住门框；固定把手角度扫描门板 `0～0.4 rad` 的路径，约下压 42.35° 后开始几何避让，
-下压 45° 时有约 1.7 mm 最小间隙，可配合拉门动作打开。45° 表示下压解锁目标，把手仍允许继续下压至约 90°。
+下压 45° 时有约 1.7 mm 最小间隙，可配合拉门动作打开。45° 表示下压解锁目标，把手最大允许下压 60°。
 门板铰链范围仍为 `0～0.4 rad`，训练的完整开门成功角度仍为 `0.30 rad`。限位采用 MuJoCo 软约束，受力时可能有微小数值偏移。
-此前允许上抬把手的模型/训练结果属于旧物理版本，需要在新模型上重新训练；训练脚本中的 `1.1/1.25 rad` 下压里程碑尚未改为 45°。
+此前允许上抬把手的模型/训练结果属于旧物理版本，需要在新模型上重新训练。`tests/train_sac_open.py` 的连续下压奖励和首次下压里程碑均已适配实际下压 45°；历史对照入口 `train_sac_open_press.py` 仍保留 `1.25 rad` 里程碑，超过新模型的 60° 行程。
 验证新模型：`uv run --no-sync python -m unittest discover -s tests -p test_door_model.py -v`。
 
 ```powershell
@@ -403,7 +403,15 @@ uv run --no-sync python tests/trainp2_sac_direct.py --precision-grasp --grasp-re
 
 ### 固定配方的独立 SAC 开门入口
 
-新增 `tests/train_sac_open.py` 和 `src/rlinit/algorithmhand/door_sac_open_env.py`，把成功实验固化为独立的完整任务入口，不调用旧训练脚本。新环境保留原版物理和关节动作，单独定义 78 维观测及成功实验的 `joint` 奖励；不包含子任务、状态库课程或其他实验奖励分支。共同使用已验证的成功率评估回调。
+`tests/train_sac_open.py` 和 `src/rlinit/algorithmhand/door_sac_open_env.py` 以成功实验为基线，提供独立的完整任务入口，不调用旧训练脚本。环境使用当前门模型和原版关节动作，单独定义 78 维观测及 `joint` 奖励；不包含子任务、状态库课程或其他实验奖励分支。共同使用成功率评估回调。
+
+当前把手最大下压 60°，下压约 45° 已能解锁。连续奖励为
+`pressing = 0.5 × grasp × clip(handle_angle / (π/4), -1, 1) × quality`：22.5° 时为 `0.25 × quality`，
+45° 及以上为 `0.5 × quality`，继续压向 60° 不再增加该奖励。双侧抓取且实际角度达到 45° 时，每回合首次获得
+`3 × quality`，并设置 `press_seen=True`。两角度集中在 `OpenRewardConfig.press_target_angle` 和
+`press_milestone_angle`，都会保存到检查点与 `config.json`。其余奖励权重、观测维度及角度观测的原有归一化、
+成功判定和 SAC 超参数保持原值；`press_seen` 的触发角度同步使用 45°。旧检查点缺少角度字段时恢复旧的 `1.3/1.1 rad`
+奖励配置，不会静默按新默认值解释；旧奖励经验池不能混入新配方续训。此前模型对应旧物理场景，不能直接用于当前场景续训。
 
 默认训练参数为：三步回报、gamma 0.995、学习率 0.0001、固定熵系数 0.005、batch 256、经验池 300000、四个并行环境、每条转移更新一次、双层 256 ReLU、夹爪训练噪声标准差 0.3、关节步幅 0.01。奖励系数集中修改新环境的 `OpenRewardConfig`，SAC 参数集中在新入口的 `SACOpenSettings`。已有模型的评估与续训恢复其保存配置。
 
@@ -414,14 +422,14 @@ uv run --no-sync python tests/trainp2_sac_direct.py --precision-grasp --grasp-re
 uv run --no-sync python tests/train_sac_open.py --timesteps 1000000 --output-dir runs/door_sac_open_scratch
 # 实时观看训练；加 --render 后默认使用单环境，需要图形桌面。
 uv run --no-sync python tests/train_sac_open.py --timesteps 1000000 --render --output-dir runs/door_sac_open_render
-# 使用本地保留的自身在线模型与经验，重跑当时奏效的多步回报阶段。
-uv run --no-sync python tests/train_sac_open.py --init-from runs/door_sac_joint_v2_multistep_source/model.zip --replay-buffer runs/door_sac_joint_v2_multistep_source/replay_buffer.pkl --timesteps 500000 --output-dir runs/door_sac_open_initialized
+# 使用当前场景和奖励配置下训练的在线模型与经验，开始新一轮训练。
+uv run --no-sync python tests/train_sac_open.py --init-from runs/door_sac_open_scratch/final_model.zip --replay-buffer runs/door_sac_open_scratch/replay_buffer.pkl --timesteps 500000 --output-dir runs/door_sac_open_initialized
 # 恢复新入口的网络、优化器和经验池，追加训练；并行环境数量应与经验池一致。
 uv run --no-sync python tests/train_sac_open.py --resume runs/door_sac_open_scratch/final_model.zip --replay-buffer runs/door_sac_open_scratch/replay_buffer.pkl --timesteps 200000 --output-dir runs/door_sac_open_resumed
 # 观看本次训练选出的最佳模型。
 uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_open_scratch/best/best_model.zip --seed 70000 --episodes 1 --render
-# 也可直接评估仓库中的历史成功模型；新环境已在同样 20 个种子上复核为 19/20。
-uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_joint_v2_verified/sac_door.zip --seed 70000 --episodes 20
+# 独立评估本次训练的最终模型。
+uv run --no-sync python tests/train_sac_open.py --evaluate runs/door_sac_open_scratch/final_model.zip --seed 70000 --episodes 20
 # 短跑集成测试：真实 SAC 更新、保存、初始化、经验池和续训，以及新旧环境一致性。
 uv run --no-sync python -m unittest discover -s tests -p test_door_sac_open.py -v
 ```
@@ -432,13 +440,14 @@ uv run --no-sync python -m unittest discover -s tests -p test_door_sac_open.py -
 
 每次训练使用新的空输出目录，防止覆盖模型。保存 `final_model.zip`、`best/best_model.zip`、`latest_model.zip`、`replay_buffer.pkl`、`config.json`、周期评估记录及 `evaluation.json`；最后一项评估选中的最佳模型，而非默认选择训练末尾模型。`--no-save-replay` 可关闭经验池保存以节省空间。续训恢复网络、优化器和经验池，仿真环境重新从 home 开始，不等价于保存全部仿真及随机数状态后的逐步精确恢复。评估只需模型与项目代码/场景，无需经验池。
 
-### 仅提高下压里程碑阈值的 SAC 开门入口
+### 历史高阈值 SAC 开门对照入口
 
-`tests/train_sac_open_press.py` 是保留原 `tests/train_sac_open.py` 的独立对照版本。新环境
-`src/rlinit/algorithmhand/door_sac_open_press_env.py` 只把首次下压奖励的实际把手角度阈值从 `1.1 rad` 提高到
-`1.25 rad`（约 71.6°）：双侧抓取且达到阈值时，每回合首次获得 `3 × quality`。
-`press_seen` 的观测和评估标记同步使用新阈值；观测仍为 78 维。连续下压奖励仍为
-`0.5 × grasp × clip(handle_angle / 1.3, -1, 1) × quality`，其他奖励、物理、动作、成功判定、SAC 超参数和渲染行为沿用原版。
+`tests/train_sac_open_press.py` 和 `src/rlinit/algorithmhand/door_sac_open_press_env.py` 保留此前的高阈值对照配置：
+首次下压奖励的实际把手角度阈值为 `1.25 rad`（约 71.6°），双侧抓取且达到阈值时，每回合首次获得 `3 × quality`；
+`press_seen` 的观测和评估标记使用该阈值，观测仍为 78 维。连续下压奖励仍为
+`0.5 × grasp × clip(handle_angle / 1.3, -1, 1) × quality`，未随主入口改为 45°。
+此历史阈值超过当前模型的 60° 行程，因此当前场景训练应使用主入口 `train_sac_open.py`。
+其他奖励权重、物理、动作、成功判定、SAC 超参数和渲染行为与主入口一致。
 
 默认输出到独立的 `runs/door_sac_open_press/`；新任务和检查点使用独立标识，评估、初始化和续训均使用本版本生成的模型，
 经验池也须来自本版本，避免混用旧阈值下的奖励。对比训练效果时应保持种子、环境数量和训练步数一致。

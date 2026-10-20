@@ -1,5 +1,6 @@
 """Check frozen-recipe fidelity and real train/save/load/resume behavior."""
 
+from contextlib import ExitStack
 from dataclasses import asdict, replace
 import json
 from pathlib import Path
@@ -60,11 +61,11 @@ class SACOpenTests(unittest.TestCase):
             train_sac_open.main()
             self.assertTrue(evaluation.call_args.kwargs["render"])
 
-    def test_matches_successful_environment_observations_rewards_and_physics(self):
+    def test_matches_previous_recipe_with_explicit_legacy_press_angles(self):
         config = default_door_config()
         reference = PrecisionGraspDoorEnv(config=config, training_config=GraspTrainingConfig.joint(
             orientation_cost_weight=0.5, contact_observation="log"))
-        frozen = SACOpenDoorEnv()
+        frozen = SACOpenDoorEnv(reward_config=OpenRewardConfig(press_target_angle=1.3, press_milestone_angle=1.1))
         self.addCleanup(reference.close)
         self.addCleanup(frozen.close)
         for seed in (0, 17):
@@ -91,6 +92,66 @@ class SACOpenTests(unittest.TestCase):
                     self.assertAlmostEqual(old[key], new[key], places=12)
         self.assertFalse(hasattr(frozen, "enable_training_resets"))
 
+    def test_45_degree_press_reward_and_once_per_episode_milestone(self):
+        env = SACOpenDoorEnv()
+        self.addCleanup(env.close)
+        env.reset(seed=0)
+        self.assertAlmostEqual(env.reward_config.press_target_angle, np.pi / 4)
+        self.assertAlmostEqual(env.reward_config.press_milestone_angle, np.pi / 4)
+        self.assertLess(env.reward_config.press_target_angle, env.model.joint("door_latch_joint").range[1])
+        quality = .93 ** 4
+        press_index = env.model.nq + env.model.nv + 7 + 8 + 1
+        # Hold exact synthetic contact states to check the reward boundary;
+        # separate integration tests exercise real physics and SAC updates.
+        with ExitStack() as stack:
+            stack.enter_context(patch("mujoco.mj_step"))
+            stack.enter_context(patch("mujoco.mj_forward"))
+            features = stack.enter_context(patch.object(env, "_features"))
+            stack.enter_context(patch.object(env, "_contacts", return_value=({"left": 2., "right": 2.}, 0., 0.)))
+            stack.enter_context(patch.object(env, "_grasp_geometry", return_value=(
+                np.zeros((2, 3)), np.zeros(3), np.zeros(2), .04)))
+            for angle, grasp, expected_press, expected_milestone in (
+                    (0., True, 0., 0.),
+                    (np.pi / 8, True, .25, 0.),
+                    (np.nextafter(np.pi / 4, 0), True, .5, 0.),
+                    (np.pi / 4, False, 0., 0.),
+                    (np.pi / 4, True, .5, 3.),
+                    (np.pi / 3, True, .5, 0.),
+                    (0., True, 0., 0.),
+                    (np.pi / 4, True, .5, 0.)):
+                with self.subTest(angle=angle, grasp=grasp):
+                    features.return_value = (np.zeros(3), np.eye(3), .93, {"left": 2., "right": 2.}, grasp, 0., 0.)
+                    env.data.qpos[env.latch] = angle
+                    obs, _, _, _, info = env.step(np.zeros(8))
+                    self.assertAlmostEqual(info["reward_components"]["pressing"], expected_press * quality)
+                    self.assertAlmostEqual(info["reward_components"]["press_milestone"], expected_milestone * quality)
+                    self.assertEqual(obs[press_index], info["press_seen"])
+            env.reset(seed=0)
+            self.assertFalse(env.press_seen)
+            env.data.qpos[env.latch] = np.pi / 4
+            self.assertAlmostEqual(env.step(np.zeros(8))[4]["reward_components"]["press_milestone"], 3 * quality)
+
+    def test_saved_press_angles_restore_without_reinterpreting_old_rewards(self):
+        env = SACOpenDoorEnv()
+        self.addCleanup(env.close)
+        new_spec = env.specification()
+        self.assertEqual(train_sac_open._saved_reward(new_spec), OpenRewardConfig())
+        new_spec["reward_config"].pop("press_target_angle")
+        new_spec["reward_config"].pop("press_milestone_angle")
+        saved = train_sac_open._saved_reward(new_spec)
+        self.assertEqual(saved.press_target_angle, 1.3)
+        self.assertEqual(saved.press_milestone_angle, 1.1)
+        self.assertNotEqual(saved, OpenRewardConfig())
+        legacy_training = dict(new_spec["reward_config"], training_stage="full", contact_observation="log",
+                               signed_press_reward=True, contact_releases_close_cost=True,
+                               quality_gated_reward=True, reward_scale=1.0)
+        self.assertEqual(train_sac_open._saved_reward(dict(task=train_sac_open.LEGACY_TASK,
+                                                          training_config=legacy_training)), saved)
+        for field in ("press_target_angle", "press_milestone_angle"):
+            for invalid in (0, -1, float("nan"), float("inf")):
+                with self.subTest(field=field, invalid=invalid), self.assertRaises(ValueError):
+                    OpenRewardConfig(**{field: invalid})
+
     def test_train_restore_resume_initialize_and_guard_replay(self):
         previous_threads = torch.get_num_threads()
         self.addCleanup(torch.set_num_threads, previous_threads)
@@ -106,6 +167,8 @@ class SACOpenTests(unittest.TestCase):
             self.assertGreater(agent._n_updates, 0)
             self.assertEqual(agent.n_steps, 3)
             self.assertEqual(agent.open_settings, asdict(settings))
+            self.assertEqual(agent.door_environment["reward_config"]["press_target_angle"], np.pi / 4)
+            self.assertEqual(agent.door_environment["reward_config"]["press_milestone_angle"], np.pi / 4)
             self.assertTrue((root / "scratch/best/best_model.zip").is_file())
             replay = root / "scratch/replay_buffer.pkl"
             with replay.open("rb") as stream:
@@ -116,6 +179,7 @@ class SACOpenTests(unittest.TestCase):
             resumed_env.close()
             self.assertEqual(resumed_agent.num_timesteps, 16)
             self.assertGreater(resumed_agent._n_updates, agent._n_updates)
+            self.assertEqual(resumed_agent.door_environment["reward_config"], agent.door_environment["reward_config"])
             initialized = train(output_dir=root / "initialized", initialize_from=first,
                                 replay_buffer_path=replay, **common)
             with (root / "initialized/replay_buffer.pkl").open("rb") as stream:
@@ -131,6 +195,12 @@ class SACOpenTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "saved replay"):
                 train(output_dir=root / "bad_resume", resume_checkpoint=first, **common)
             metadata = json.loads((root / "scratch/config.json").read_text())
+            legacy_metadata = json.loads(json.dumps(metadata))
+            legacy_metadata["environment"]["reward_config"].pop("press_target_angle")
+            legacy_metadata["environment"]["reward_config"].pop("press_milestone_angle")
+            (root / "scratch/config.json").write_text(json.dumps(legacy_metadata))
+            with self.assertRaisesRegex(ValueError, "matching home-only"):
+                train(output_dir=root / "old_press_replay", initialize_from=first, replay_buffer_path=replay, **common)
             metadata["demonstrations"] = {"unexpected": True}
             (root / "scratch/config.json").write_text(json.dumps(metadata))
             with self.assertRaisesRegex(ValueError, "matching home-only"):

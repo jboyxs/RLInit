@@ -20,6 +20,8 @@ TASK = "fixed_base_door_sac_open_press_v1"
 
 @dataclass(frozen=True)
 class OpenPressRewardConfig(OpenRewardConfig):
+    # Preserve this historical comparison when the main recipe moves to 45 deg.
+    press_target_angle: float = 1.3
     press_milestone_angle: float = 1.25
 
     def __post_init__(self):
